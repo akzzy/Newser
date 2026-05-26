@@ -1,0 +1,255 @@
+/* ================================================
+   ReaderDrawer — Slide-up article detail panel
+   ================================================ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.overlayVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-height: 92dvh;
+  z-index: 201;
+  background: var(--color-bg-dark);
+  border-radius: 20px 20px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior-y: none; /* Stops Android Chrome pull-to-refresh on the whole drawer */
+  touch-action: pan-y; /* Locks native gestures to vertical only */
+}
+
+.drawerOpen {
+  transform: translateY(0);
+}
+
+/* ---- Drag handle ---- */
+.dragHandle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 8px;
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.dragBar {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ---- Header ---- */
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md) var(--space-md);
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease 0.1s, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s;
+}
+
+.drawerOpen .drawerHeader {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sourceChip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  font-family: var(--font-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.sourceChipLogo {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.readTimeBadge {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  font-family: var(--font-secondary);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.closeBtn {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.closeBtn:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ---- Content ---- */
+.drawerContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--space-md) var(--space-2xl);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none; /* Completely kills Android Chrome's local container stretch/glow */
+}
+
+/* ---- Markdown styling ---- */
+.markdown {
+  font-family: var(--font-secondary);
+  font-size: 17px; /* Increased from 15px for better legibility */
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.88);
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s ease 0.15s, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s;
+}
+
+.drawerOpen .markdown {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  font-family: var(--font-primary);
+  font-weight: 600;
+  color: var(--color-white);
+  margin: var(--space-lg) 0 var(--space-sm);
+}
+
+.markdown h1 { font-size: 24px; }
+.markdown h2 { font-size: 20px; }
+.markdown h3 { font-size: 18px; }
+
+.markdown p {
+  margin-bottom: var(--space-md);
+}
+
+.markdown strong {
+  color: var(--color-white);
+  font-weight: 700;
+}
+
+.markdown ul,
+.markdown ol {
+  margin: var(--space-sm) 0 var(--space-md);
+  padding-left: var(--space-lg);
+}
+
+.markdown li {
+  margin-bottom: var(--space-sm);
+}
+
+.markdown li::marker {
+  color: var(--color-accent-teal);
+}
+
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-md) 0;
+  font-size: 13px;
+}
+
+.markdown th {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-white);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.markdown td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.markdown tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown blockquote {
+  border-left: 3px solid var(--color-accent-teal);
+  padding-left: var(--space-md);
+  margin: var(--space-md) 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+}
+
+.markdown code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+/* ---- Footer with source link ---- */
+.drawerFooter {
+  padding: var(--space-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.originalLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  font-family: var(--font-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-accent-teal);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  text-decoration: none;
+}
+
+.originalLink:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.originalLinkIcon {
+  font-size: 16px;
+}
+

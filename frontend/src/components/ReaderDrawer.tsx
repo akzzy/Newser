@@ -1,0 +1,276 @@
+'use client';
+
+import { useCallback, useEffect, useState, useRef } from 'react';
+import { useArticleStore } from '@/store/useArticleStore';
+import { triggerHaptic } from '@/lib/haptics';
+import styles from './ReaderDrawer.module.css';
+
+/**
+ * Simple markdown-to-HTML converter.
+ * Handles: bold, italic, headers, lists, tables, blockquotes, inline code.
+ */
+function renderMarkdown(md: string): string {
+  let html = md
+    // Headers
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // Bold & italic
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // Blockquotes
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    // Horizontal rules
+    .replace(/^---$/gm, '<hr/>');
+
+  // Tables
+  html = html.replace(
+    /\|(.+)\|\n\|[-| ]+\|\n((?:\|.+\|\n?)*)/g,
+    (_, headerRow: string, bodyRows: string) => {
+      const headers = headerRow.split('|').map((h: string) => h.trim()).filter(Boolean);
+      const rows = bodyRows.trim().split('\n').map((row: string) =>
+        row.split('|').map((c: string) => c.trim()).filter(Boolean)
+      );
+      return `<table><thead><tr>${headers.map((h: string) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((r: string[]) => `<tr>${r.map((c: string) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    }
+  );
+
+  // Lists (unordered)
+  html = html.replace(/^[*-] (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
+
+  // Paragraphs (wrap remaining non-tag lines)
+  html = html
+    .split('\n\n')
+    .map(block => {
+      const trimmed = block.trim();
+      if (!trimmed) return '';
+      if (trimmed.startsWith('<')) return trimmed;
+      return `<p>${trimmed.replace(/\n/g, '<br/>')}</p>`;
+    })
+    .join('');
+
+  return html;
+}
+
+export default function ReaderDrawer() {
+  const { drawerArticle, isDrawerOpen, closeDrawer } = useArticleStore();
+  const [startY, setStartY] = useState(0);
+  const [currentY, setCurrentY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragLocked, setDragLocked] = useState(false);
+  const isDraggingRef = useRef(false);
+
+  // Sync dragging state to ref for native event listener
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
+
+  // Non-passive native event listener to completely block browser rubber-banding
+  useEffect(() => {
+    const preventNativeScroll = (e: TouchEvent) => {
+      if (isDraggingRef.current) {
+        e.preventDefault();
+      }
+    };
+    
+    // Attach to document to catch all rogue overscrolls
+    document.addEventListener('touchmove', preventNativeScroll, { passive: false });
+    return () => document.removeEventListener('touchmove', preventNativeScroll);
+  }, []);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartY(e.touches[0].clientY);
+    setCurrentY(e.touches[0].clientY);
+    setIsDragging(false);
+    setDragLocked(false);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (dragLocked) return;
+
+    const y = e.touches[0].clientY;
+    const dy = y - startY;
+    
+    if (!isDragging) {
+      if (Math.abs(dy) > 5) {
+        if (dy > 0) {
+          // Pulling DOWN
+          const target = e.target as HTMLElement;
+          const scrollContainer = target.closest(`.${styles.drawerContent}`);
+          
+          if (!scrollContainer || scrollContainer.scrollTop <= 3) {
+            setIsDragging(true);
+            setStartY(y);
+            setCurrentY(y);
+          } else {
+            setDragLocked(true);
+          }
+        } else {
+          // Pulling UP
+          setDragLocked(true);
+        }
+      }
+      return;
+    }
+    
+    // If dragging, record position. Native listener handles preventDefault.
+    if (y > startY) {
+      setCurrentY(y);
+    } else {
+      setCurrentY(startY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging) {
+      const diff = currentY - startY;
+      if (diff > 80) {
+        triggerHaptic('light');
+        closeDrawer();
+      }
+    }
+    setIsDragging(false);
+    setDragLocked(false);
+    setStartY(0);
+    setCurrentY(0);
+  };
+
+  const dragOffset = isDragging ? Math.max(0, currentY - startY) : 0;
+
+  // Close on escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDrawerOpen) closeDrawer();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDrawerOpen, closeDrawer]);
+
+  // Prevent body scroll and native pull-to-refresh when drawer is open
+  useEffect(() => {
+    if (isDrawerOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.overscrollBehaviorY = 'none';
+      document.documentElement.style.overscrollBehaviorY = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.overscrollBehaviorY = '';
+      document.documentElement.style.overscrollBehaviorY = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.overscrollBehaviorY = '';
+      document.documentElement.style.overscrollBehaviorY = '';
+    };
+  }, [isDrawerOpen]);
+
+  const handleOverlayClick = useCallback(() => {
+    triggerHaptic('light');
+    closeDrawer();
+  }, [closeDrawer]);
+
+  const deepDiveHtml = drawerArticle?.deep_dive_content
+    ? renderMarkdown(drawerArticle.deep_dive_content)
+    : '<p>No content available.</p>';
+
+  return (
+    <>
+      {/* Backdrop overlay */}
+      <div
+        className={`${styles.overlay} ${isDrawerOpen ? styles.overlayVisible : ''}`}
+        onClick={handleOverlayClick}
+        aria-hidden="true"
+        style={{
+          // Fade the backdrop slightly as they pull down
+          opacity: isDragging ? Math.max(0, 1 - (dragOffset / 400)) : undefined,
+          transition: isDragging ? 'none' : undefined
+        }}
+      />
+
+      {/* Drawer panel */}
+      <div
+        className={`${styles.drawer} ${isDrawerOpen ? styles.drawerOpen : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Article details"
+        style={{
+          // Physically move the drawer with the thumb, bypassing CSS transition
+          transform: isDragging ? `translateY(${dragOffset}px)` : undefined,
+          transition: isDragging ? 'none' : undefined
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Drag handle */}
+        <div className={styles.dragHandle}>
+          <div className={styles.dragBar} />
+        </div>
+
+        {drawerArticle && (
+          <>
+            {/* Header */}
+            <div className={styles.drawerHeader}>
+              {drawerArticle.source && (
+                <div className={styles.sourceChip}>
+                  {drawerArticle.source.logo_url && (
+                    <img
+                      className={styles.sourceChipLogo}
+                      src={drawerArticle.source.logo_url}
+                      alt=""
+                    />
+                  )}
+                  {drawerArticle.source.name}
+                </div>
+              )}
+
+              {drawerArticle.read_time && (
+                <div className={styles.readTimeBadge}>
+                  {drawerArticle.read_time} read
+                </div>
+              )}
+
+              <button
+                className={styles.closeBtn}
+                onClick={() => {
+                  triggerHaptic('light');
+                  closeDrawer();
+                }}
+                aria-label="Close"
+                id="drawer-close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable content */}
+            <div className={styles.drawerContent}>
+              <div
+                className={styles.markdown}
+                dangerouslySetInnerHTML={{ __html: deepDiveHtml }}
+              />
+            </div>
+
+            {/* Footer with original link */}
+            <div className={styles.drawerFooter}>
+              <a
+                href={drawerArticle.original_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.originalLink}
+                id="original-article-link"
+              >
+                <span className={styles.originalLinkIcon}>↗</span>
+                Read original article
+              </a>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}

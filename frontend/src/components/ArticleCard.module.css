@@ -1,0 +1,349 @@
+/* ================================================
+   ArticleCard — Full-screen card matching Figma Frame 5
+   Layout: Hero image (top) + Blue gradient content (bottom)
+   ================================================ */
+
+.card {
+  position: relative;
+  width: 100%;
+  height: 100%; /* Perfectly matches the locked container */
+  overflow: hidden;
+  scroll-snap-align: start;
+  scroll-snap-stop: always; /* Force snapping stop at every card */
+  flex-shrink: 0;
+  background: var(--color-bg-black);
+}
+
+/* ---- Hero Image ---- */
+.heroImage {
+  position: absolute;
+  top: calc(115px + env(safe-area-inset-top, 0px)); /* Generous and balanced padding below the category scroll tabs */
+  left: 0;
+  width: 100%;
+  aspect-ratio: 1 / 1; /* Forces the image to be a perfect 1x1 square on all devices */
+  object-fit: cover;
+  object-position: center;
+  z-index: 1;
+}
+
+.heroImageFallback {
+  position: absolute;
+  top: calc(115px + env(safe-area-inset-top, 0px));
+  left: 0;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fallbackIcon {
+  font-size: 48px;
+  opacity: 0.3;
+}
+
+/* ---- Header gradient (black vignette overlay over image top) ---- */
+.headerGradient {
+  position: absolute;
+  top: calc(115px + env(safe-area-inset-top, 0px));
+  left: 0;
+  width: 100%;
+  height: 80px;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.35) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ---- Content area (flows immediately below the image) ---- */
+.contentArea {
+  position: absolute;
+  top: calc(115px + env(safe-area-inset-top, 0px) + 100vw); /* Starts EXACTLY where the 1x1 square image ends (width is 100vw) */
+  left: 0;
+  width: 100%;
+  height: calc(100% - 115px - env(safe-area-inset-top, 0px) - 100vw); /* Stretches dynamic content card to the exact bottom of the parent card */
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Flows elements top-down naturally */
+  padding: var(--space-md);
+  padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+  gap: var(--space-sm); /* Unified gaps between details */
+  overflow: hidden; /* Contain ambient glow */
+}
+
+/* Ambient Glow using Hero Image (Zero JS/CORS Color Extraction) */
+.contentArea::before {
+  content: '';
+  position: absolute;
+  inset: -100px; /* Bleed out further for the stronger blur */
+  background-image: var(--hero-image);
+  background-size: cover;
+  background-position: center bottom;
+  filter: blur(80px) saturate(2); /* Doubled blur to completely abstract the image into ambient light */
+  opacity: 0.85; /* Vibrant glow */
+  pointer-events: none;
+  z-index: -2; /* Stays behind content but inside contentArea */
+}
+
+/* Gradient background overlay to ensure readability over the ambient glow */
+.contentGradient {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 15, 15, 0.4) 0%,
+    rgba(15, 15, 15, 0.85) 55%,
+    rgba(15, 15, 15, 0.98) 100%
+  );
+  pointer-events: none;
+}
+
+/* Modern grainy noise texture for premium tactile feel */
+.contentGradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.25; /* Stronger visibility */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.3'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ---- Category badge ---- */
+.categoryBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 20px;
+  font-family: var(--font-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-white);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  width: fit-content;
+  margin-bottom: 0; /* Managed by contentArea gap */
+}
+
+.categoryDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-accent-teal); /* Fallback */
+  flex-shrink: 0;
+}
+
+/* Extract dominant color natively without JS/CORS */
+.categoryDot::before {
+  content: '';
+  position: absolute;
+  inset: -4px; /* Bleed out to hide fuzzy blur edges */
+  background-image: var(--hero-image);
+  background-size: cover;
+  background-position: center;
+  filter: blur(4px) saturate(3);
+  z-index: 1;
+}
+
+.titleHook {
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: clamp(24px, 5.5vw, 34px); /* Slightly tighter font size for pixel-perfect balance */
+  line-height: 1.15;
+  color: var(--color-title);
+  margin-bottom: 0; /* Managed by contentArea gap */
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Max 3 lines to fit perfectly on all mobile devices */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sourceInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: 0; /* Managed by contentArea gap */
+  opacity: 0.8;
+}
+
+.sourceLogo {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: contain;
+  background: rgba(255,255,255,0.1);
+}
+
+.sourceName {
+  font-family: var(--font-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-white);
+}
+
+.sourceTime {
+  font-family: var(--font-secondary);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sourceDivider {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* ---- Bottom action row ---- */
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md); /* Controlled breathing room gap below metadata, preventing blank spaces */
+}
+
+.readMoreBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-btn);
+  font-family: var(--font-secondary);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-white);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.readMoreBtn:active {
+  transform: scale(0.96);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.readMoreArrow {
+  font-size: 18px;
+  transition: transform 0.2s ease;
+}
+
+.readMoreBtn:active .readMoreArrow {
+  transform: translateX(3px);
+}
+
+.actionSpacer {
+  flex: 1;
+}
+
+.iconBtn {
+  width: var(--icon-btn-size);
+  height: var(--icon-btn-size);
+  border-radius: var(--radius-icon);
+  background: rgba(51, 51, 51, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.iconBtn:active {
+  transform: scale(0.9);
+  background: rgba(80, 80, 80, 0.8);
+}
+
+.iconBtn svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--color-white);
+}
+
+.iconBtnActive {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.iconBtnActive svg {
+  fill: #ff6b6b;
+}
+
+/* ---- Skeleton card ---- */
+.skeletonCard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always; /* Force snapping stop at every card */
+  flex-shrink: 0;
+  background: var(--color-bg-black);
+  display: flex;
+  flex-direction: column;
+}
+
+.skeletonImage {
+  width: 100%;
+  height: 55%;
+}
+
+.skeletonContent {
+  flex: 1;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  background: linear-gradient(to top, var(--gradient-content-end), var(--gradient-content-start));
+}
+
+.skeletonBadge {
+  width: 80px;
+  height: 24px;
+}
+
+.skeletonTitle {
+  width: 90%;
+  height: 32px;
+}
+
+.skeletonTitle2 {
+  width: 70%;
+  height: 32px;
+}
+
+.skeletonRow {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.skeletonBtn {
+  width: 146px;
+  height: 42px;
+  border-radius: var(--radius-btn);
+}
+
+.skeletonCircle {
+  width: var(--icon-btn-size);
+  height: var(--icon-btn-size);
+  border-radius: 50%;
+}

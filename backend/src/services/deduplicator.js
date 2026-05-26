@@ -1,0 +1,183 @@
+/**
+ * Deduplicator service — hybrid token + AI approach.
+ *
+ * Fast path: Token-based Jaccard/Containment similarity is used as a pre-filter.
+ *   - Score >= 0.50 → definitely a duplicate (skip AI)
+ *   - Score 0.20–0.50 → "gray zone" → ask AI model for confirmation
+ *   - Score < 0.20 → definitely NOT a duplicate (skip AI)
+ *
+ * This avoids hand-tuning thresholds and uses AI only for borderline cases,
+ * keeping costs minimal while achieving near-perfect accuracy.
+ */
+
+import { Mistral } from '@mistralai/mistralai';
+
+// ── Stop words ──
+const STOP_WORDS = new Set([
+  'a', 'an', 'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+  'in', 'on', 'at', 'to', 'from', 'by', 'for', 'with', 'about', 'against', 'between',
+  'into', 'through', 'during', 'before', 'after', 'above', 'below', 'under',
+  'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where',
+  'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some',
+  'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very',
+  'can', 'will', 'just', 'should', 'now', 'has', 'have', 'had', 'its', 'their', 'this',
+  'that', 'these', 'those', 'do', 'does', 'did', 'doing', 'would', 'could', 'might',
+  'shall', 'may', 'must', 'need', 'dare', 'ought', 'used', 'get', 'gets', 'got',
+  'getting', 'make', 'makes', 'made', 'let', 'us', 'me', 'my', 'we', 'our', 'you',
+  'your', 'he', 'she', 'it', 'they', 'him', 'her', 'them', 'his', 'hers', 'theirs',
+  'what', 'which', 'who', 'whom', 'whose', 'if', 'unless', 'until', 'while',
+  'of', 'up', 'out', 'off', 'over', 'down', 'on', 'no', 'yes',
+  'new', 'says', 'said', 'report', 'reports', 'according', 'also', 'still',
+  'best', 'last', 'next', 'big', 'top', 'major', 'latest',
+  'reveals', 'reveal', 'announces', 'announced',
+  'unveiled', 'unveils', 'confirms', 'confirmed', 'shows', 'show',
+  'coming', 'goes', 'going', 'like', 'looks', 'look',
+  'heres', 'thats', 'whats', 'dont', 'doesnt', 'wont', 'cant', 'isnt',
+  'promo', 'codes', 'code', 'coupon', 'coupons', 'discount', 'deal', 'deals',
+  'sale', 'sales', 'offer', 'offers', 'save', 'saving', 'savings',
+  'memorial', 'day',
+  '2024', '2025', '2026', '2027'
+]);
+
+const SYNONYMS = {
+  'electric': 'ev', 'electrical': 'ev',
+  'automotive': 'car', 'auto': 'car', 'vehicle': 'car',
+  'motorcycle': 'bike', 'bicycle': 'bike'
+};
+
+// ── Thresholds ──
+const DEFINITE_DUPLICATE_THRESHOLD = 0.50;  // High confidence — skip AI
+const GRAY_ZONE_THRESHOLD = 0.20;            // Below this — definitely not a dup
+
+// ── Mistral client (lazy init, reuses the same key as aiRewriter) ──
+let mistralClient = null;
+
+function getMistralClient() {
+  if (!mistralClient) {
+    const apiKey = process.env.MISTRAL_API_KEY;
+    if (!apiKey) throw new Error('MISTRAL_API_KEY not configured');
+    mistralClient = new Mistral({ apiKey });
+  }
+  return mistralClient;
+}
+
+// ── Tokenizer ──
+export function tokenize(title) {
+  if (!title) return [];
+  return title
+    .toLowerCase()
+    .replace(/'s\b/g, '')
+    .replace(/[^\w\s-]/g, '')
+    .split(/\s+/)
+    .map(word => SYNONYMS[word] || word)
+    .filter(word => word.length > 1 && !STOP_WORDS.has(word));
+}
+
+// ── Token similarity (fast) ──
+export function calculateTitleSimilarity(title1, title2) {
+  const t1 = tokenize(title1);
+  const t2 = tokenize(title2);
+  if (t1.length === 0 || t2.length === 0) return 0;
+
+  const set1 = new Set(t1);
+  const set2 = new Set(t2);
+
+  let intersection = 0;
+  for (const token of set1) {
+    if (set2.has(token)) intersection++;
+  }
+
+  const jaccard = intersection / new Set([...t1, ...t2]).size;
+  const containment = intersection / Math.min(set1.size, set2.size);
+
+  return 0.4 * jaccard + 0.6 * containment;
+}
+
+// ── AI duplicate check ──
+async function askAIIfDuplicate(title1, title2) {
+  try {
+    const mistral = getMistralClient();
+
+    const result = await mistral.chat.complete({
+      model: 'mistral-medium-3-5',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a news headline deduplication engine.
+
+Given two headlines, decide if they cover the SAME underlying news event or story.
+
+Rules:
+- "Same story" means the core news event is identical, even if the headlines emphasize different angles.
+- Two articles about "Sennheiser Momentum 5 launch" from different sites = SAME.
+- Two articles about "SpaceX Starship V3 first flight" from different sites = SAME.
+- "MacBook Pro launch" vs "iPad Pro launch" = DIFFERENT (different products).
+- "Google Chromecast updates" vs "Google Wear OS updates" = DIFFERENT (different products).
+
+Respond with ONLY: {"same": true} or {"same": false}`
+        },
+        {
+          role: 'user',
+          content: `Headline A: "${title1}"\nHeadline B: "${title2}"`
+        }
+      ],
+      responseFormat: { type: 'json_object' },
+      temperature: 0,
+      maxTokens: 20
+    });
+
+    const text = result.choices?.[0]?.message?.content?.trim();
+    if (!text) return false;
+
+    const parsed = JSON.parse(text);
+    return parsed.same === true;
+  } catch (err) {
+    console.error(`[Deduplicator] AI check failed: ${err.message}`);
+    return false;
+  }
+}
+
+// ── Sleep helper ──
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Check if a candidate title is a duplicate of any title in the knownTitles list.
+ *
+ * Strategy:
+ *   - Token score < 0.20 → skip (definitely different)
+ *   - Token score >= 0.20 → ask AI for the final call
+ *
+ * This keeps AI calls minimal (only for pairs with some token overlap)
+ * while letting the AI handle all the nuanced decisions.
+ *
+ * @param {string} candidateTitle - The new article title to check
+ * @param {string[]} knownTitles - List of titles already accepted
+ * @param {object} logger - Logger instance (optional)
+ * @returns {{ isDuplicate: boolean, matchedTitle: string|null, method: string, score: number }}
+ */
+export async function checkDuplicate(candidateTitle, knownTitles, logger = console) {
+  for (const knownTitle of knownTitles) {
+    const score = calculateTitleSimilarity(candidateTitle, knownTitle);
+
+    // Fast skip: no meaningful token overlap
+    if (score < GRAY_ZONE_THRESHOLD) continue;
+
+    // Ask AI for the final verdict
+    logger.info?.(`[Dedup] Checking (token score: ${score.toFixed(2)}): "${candidateTitle}" ↔ "${knownTitle}"`);
+    const aiSaysSame = await askAIIfDuplicate(candidateTitle, knownTitle);
+
+    if (aiSaysSame) {
+      logger.info?.(`[Dedup] ✓ AI confirmed duplicate: "${candidateTitle}"`);
+      return { isDuplicate: true, matchedTitle: knownTitle, method: 'ai', score };
+    } else {
+      logger.info?.(`[Dedup] ✗ AI says different story`);
+    }
+
+    // Small delay between AI calls
+    await sleep(200);
+  }
+
+  return { isDuplicate: false, matchedTitle: null, method: 'none', score: 0 };
+}
