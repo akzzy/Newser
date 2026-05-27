@@ -65,7 +65,7 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
       const userPrompt = buildRewritePrompt(title, content);
 
       const result = await mistral.chat.complete({
-        model: 'mistral-medium-3-5',
+        model: 'mistral-medium-2508',
         messages: [
           { role: 'system', content: REWRITE_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
@@ -79,6 +79,9 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
       if (!responseText) {
         throw new Error('Empty response from Mistral');
       }
+
+      // Mandatory 3-second sleep to ensure we NEVER exceed 0.38 Requests Per Second limit
+      await sleep(3000);
 
       return parseAIResponse(responseText);
     } catch (error) {

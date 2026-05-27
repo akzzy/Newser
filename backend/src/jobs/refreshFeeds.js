@@ -164,7 +164,7 @@ async function refreshAllFeeds(fastify) {
   if (newArticles.length === 0) {
     logger.info('[RefreshFeeds] No new articles (all URLs already in DB).');
     // Still run AI rewriter for any pending articles
-    await rewritePendingArticles(supabase, logger, 10);
+    await rewritePendingArticles(supabase, logger, 50);
     return;
   }
 
@@ -224,17 +224,19 @@ async function refreshAllFeeds(fastify) {
 
   if (uniqueArticles.length === 0) {
     logger.info('[RefreshFeeds] No unique articles to store.');
-    await rewritePendingArticles(supabase, logger, 10);
+    await rewritePendingArticles(supabase, logger, 50);
     return;
   }
 
   // ── Phase 4: Scrape articles with insufficient content ──
   for (const article of uniqueArticles) {
+    article.is_scraped = false; // Default
     if (article.original_content.length < 200) {
       try {
         const scraped = await scrapeArticle(article.url);
         if (scraped.content.length > article.original_content.length) {
           article.original_content = scraped.content;
+          article.is_scraped = true; // Mark as successfully scraped
         }
         if (!article.image_url && scraped.image_url) {
           article.image_url = scraped.image_url;
@@ -259,7 +261,8 @@ async function refreshAllFeeds(fastify) {
         author: article.author,
         published_at: article.published_at,
         fetched_at: new Date().toISOString(),
-        rewrite_status: 'pending'
+        rewrite_status: 'pending',
+        is_scraped: article.is_scraped
       }, { onConflict: 'url' });
 
     if (insertErr) {
@@ -272,7 +275,7 @@ async function refreshAllFeeds(fastify) {
   logger.info(`[RefreshFeeds] Phase 5 done: ${insertedCount} new articles stored`);
 
   // ── Phase 6: Rewrite pending articles with AI ──
-  const rewriteCount = await rewritePendingArticles(supabase, logger, 10);
+  const rewriteCount = await rewritePendingArticles(supabase, logger, 50);
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   logger.info(`[RefreshFeeds] Cycle complete. ${insertedCount} stored, ${rewriteCount} rewritten, ${skippedCount} duplicates dropped in ${elapsed}s`);

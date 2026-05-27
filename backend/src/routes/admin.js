@@ -9,20 +9,33 @@ export default async function adminRoutes(fastify, options) {
       const limit = parseInt(request.query.limit) || 20;
       const offset = (page - 1) * limit;
 
-      // 1. Fetch paginated successfully rewritten articles
-      const { data: recentArticles, count: totalArticles, error: artError } = await supabase
+      const status = request.query.status;
+
+      // 1. Fetch paginated articles (filtered by status if provided)
+      let query = supabase
         .from('articles')
         .select(`
-          id, title, title_hook, ai_category, published_at,
+          id, title, title_hook, ai_category, published_at, rewrite_status, is_scraped,
           source:sources(name)
-        `, { count: 'exact' })
-        .eq('rewrite_status', 'completed')
+        `, { count: 'exact' });
+
+      if (status && status !== 'all') {
+        if (status === 'scraped') {
+          query = query.eq('is_scraped', true);
+        } else if (status === 'rss') {
+          query = query.eq('is_scraped', false);
+        } else {
+          query = query.eq('rewrite_status', status);
+        }
+      }
+
+      const { data: recentArticles, count: totalArticles, error: artError } = await query
         .order('published_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
       if (artError) throw artError;
 
-      // 2. Fetch last 50 duplicate logs (exclude admin manual deletes from the UI)
+      // 2. Fetch last 50 duplicate logs
       const { data: duplicateLogs, error: logError } = await supabase
         .from('duplicate_logs')
         .select('*')
@@ -32,10 +45,28 @@ export default async function adminRoutes(fastify, options) {
 
       if (logError) throw logError;
 
-      // 3. Stats summary
+      // 3. Queue Stats (pending, completed, failed)
+      // Supabase REST doesn't easily do GROUP BY counts in a single query efficiently,
+      // so we'll do three quick count queries.
+      const { count: pendingCount } = await supabase.from('articles').select('*', { count: 'exact', head: true }).eq('rewrite_status', 'pending');
+      const { count: completedCount } = await supabase.from('articles').select('*', { count: 'exact', head: true }).eq('rewrite_status', 'completed');
+      const { count: failedCount } = await supabase.from('articles').select('*', { count: 'exact', head: true }).eq('rewrite_status', 'failed');
+
+      // 4. Scrape Stats (RSS vs Scraped)
+      const { count: scrapedCount } = await supabase.from('articles').select('*', { count: 'exact', head: true }).eq('is_scraped', true);
+      const { count: rssCount } = await supabase.from('articles').select('*', { count: 'exact', head: true }).eq('is_scraped', false);
+
       const stats = {
-        total_articles: totalArticles || 0,
-        total_recent_duplicates: duplicateLogs.length,
+        queue: {
+          pending: pendingCount || 0,
+          completed: completedCount || 0,
+          failed: failedCount || 0
+        },
+        scraper: {
+          rssOnly: rssCount || 0,
+          scraped: scrapedCount || 0
+        },
+        duplicates: duplicateLogs.length
       };
 
       return {

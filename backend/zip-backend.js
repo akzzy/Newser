@@ -9,24 +9,16 @@ console.log('📦 Bundling backend for cPanel deployment...');
 
 try {
   // Use PowerShell's Compress-Archive, but we must exclude node_modules.
-  // The easiest way on Windows without external dependencies is to copy the folder,
-  // delete node_modules in the copy, zip it, and delete the copy.
+  const psCommand = `
+    $source = '${backendDir}\\*'
+    $destination = '${zipFile}'
+    $exclude = @('node_modules', '.env', '.env.local', '.git')
+    
+    Get-ChildItem -Path $source -Exclude $exclude | Compress-Archive -DestinationPath $destination -Force
+  `;
   
-  const tempDir = path.join(backendDir, '..', 'temp_backend_deploy');
-  
-  // 1. Copy backend to temp
-  console.log('Copying files...');
-  execSync(`xcopy "${backendDir}" "${tempDir}" /E /I /H /Y /EXCLUDE:exclude.txt`, { stdio: 'ignore' });
-  
-  // 2. Zip temp folder
   console.log('Compressing to backend-deploy.zip...');
-  if (fs.existsSync(zipFile)) fs.unlinkSync(zipFile);
-  execSync(`powershell -Command "Compress-Archive -Path '${tempDir}\\*' -DestinationPath '${zipFile}'"`);
-  
-  // 3. Cleanup
-  console.log('Cleaning up...');
-  fs.rmSync(tempDir, { recursive: true, force: true });
-  if (fs.existsSync('exclude.txt')) fs.unlinkSync('exclude.txt');
+  execSync(`powershell -Command "${psCommand.replace(/\n/g, ' ')}"`);
   
   console.log(`✅ Success! Your cPanel zip file is ready at: ${zipFile}`);
 } catch (err) {

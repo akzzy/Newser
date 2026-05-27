@@ -17,4 +17,27 @@ export async function sourceRoutes(fastify) {
 
     return { sources: data || [] };
   });
+
+  /**
+   * GET /api/sources/categories
+   * List all unique AI categories from articles.
+   */
+  fastify.get('/sources/categories', async (request, reply) => {
+    // For performance, we can just return the hardcoded list of valid AI categories,
+    // or query distinct categories. Hardcoded is extremely fast and reliable.
+    const categories = [
+      "Technology",
+      "Science",
+      "Business",
+      "Culture",
+      "Entertainment",
+      "Politics",
+      "Health",
+      "Gaming",
+      "Auto",
+      "General"
+    ];
+    
+    return { categories };
+  });
 }
