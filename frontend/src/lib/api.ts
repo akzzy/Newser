@@ -1,7 +1,7 @@
 let API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // Dynamically adjust API base on the client side to match the host IP (for mobile preview)
-if (typeof window !== 'undefined') {
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   const hostname = window.location.hostname;
   if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.startsWith('127.')) {
     API_BASE = `http://${hostname}:3001`;
