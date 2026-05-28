@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useCallback, useState } from 'react';
 import { useArticleStore } from '@/store/useArticleStore';
 import { fetchArticles, fetchCategories } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
@@ -45,9 +45,9 @@ export default function Feed() {
     fetchCategories().then(setCategories).catch(console.error);
   }, []);
 
-  // Force scroll to top when new articles are loaded (defeats browser scroll anchoring)
+  // Force scroll to top when new articles are loaded (defeats browser scroll anchoring before paint)
   const topArticleId = articles[0]?.id;
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (feedRef.current) {
       feedRef.current.scrollTop = 0;
     }
