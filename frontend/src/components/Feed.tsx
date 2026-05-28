@@ -137,8 +137,8 @@ export default function Feed() {
   const handleLogoClick = async () => {
     triggerHaptic('light');
     
-    // Smooth scroll to top
-    feedRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    // Instant scroll to top before refresh
+    feedRef.current?.scrollTo({ top: 0, behavior: 'auto' });
     
     // Trigger the pull-to-refresh style load
     if (!isRefreshing) {

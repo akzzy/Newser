@@ -48,7 +48,7 @@ export const useArticleStore = create<ArticleStore>((set) => ({
   },
 
   setArticles: (articles, hasMore) =>
-    set({ articles, hasMore, page: 1 }),
+    set({ articles, hasMore, page: 1, currentIndex: 0 }),
 
   appendArticles: (newArticles, hasMore) =>
     set((state) => ({
