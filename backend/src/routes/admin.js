@@ -1,5 +1,24 @@
+import fs from 'fs';
+import path from 'path';
+
 export default async function adminRoutes(fastify, options) {
   const supabase = fastify.supabase;
+  const logFile = path.join(process.cwd(), 'app.log');
+
+  // Logs endpoint
+  fastify.get('/logs', async (request, reply) => {
+    try {
+      if (!fs.existsSync(logFile)) {
+        return { logs: ['Log file not found or still empty.'] };
+      }
+      // Quick way to get last ~150 lines without crashing on memory
+      const content = fs.readFileSync(logFile, 'utf8');
+      const lines = content.split('\n').filter(Boolean);
+      return { logs: lines.slice(-150) };
+    } catch (err) {
+      return { logs: [`Error reading logs: ${err.message}`] };
+    }
+  });
 
   // GET /api/admin/dashboard
   // Returns recent AI rewritten articles and duplicate logs

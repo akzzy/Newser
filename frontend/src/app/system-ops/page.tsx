@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './page.module.css';
 
 const SECRET_PASSWORD = 'admin';
@@ -15,7 +15,11 @@ export default function AdminDashboard() {
   const [apiBase, setApiBase] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState('all');
+  const [logs, setLogs] = useState<string[]>([]);
   const limit = 20;
+  
+  // Reference for auto-scrolling terminal
+  const terminalEndRef = React.useRef<HTMLDivElement>(null);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +57,38 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   };
+
+  const fetchLogs = async (base = apiBase) => {
+    if (!base) return;
+    try {
+      const response = await fetch(`${base}/api/admin/logs`, { cache: 'no-store' });
+      if (response.ok) {
+        const json = await response.json();
+        setLogs(json.logs || []);
+      }
+    } catch (err) {
+      // ignore log fetch errors silently
+    }
+  };
+
+  // Poll for logs every 3 seconds when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    fetchLogs(); // initial fetch
+    const interval = setInterval(() => {
+      fetchLogs();
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [isAuthenticated, apiBase]);
+
+  // Auto-scroll terminal to bottom
+  useEffect(() => {
+    if (terminalEndRef.current) {
+      terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this article?')) return;
@@ -196,6 +232,46 @@ export default function AdminDashboard() {
         <div className={styles.terminalHeader}>
           <h2>{filter === 'duplicates' ? 'Permanently Dropped Duplicates' : 'Latest Articles'}</h2>
         </div>
+
+        {/* Live Terminal Block */}
+        <div className={styles.terminalContainer} style={{ marginTop: '2rem', background: '#0d1117', borderRadius: '12px', padding: '1.5rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <h3 style={{ margin: '0 0 1rem 0', color: '#58a6ff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: 8, height: 8, background: '#3fb950', borderRadius: '50%', boxShadow: '0 0 8px #3fb950' }} />
+            Live Backend Terminal
+          </h3>
+          <div style={{ 
+            background: '#010409', 
+            borderRadius: '6px', 
+            padding: '1rem', 
+            height: '300px', 
+            overflowY: 'auto',
+            fontFamily: 'monospace',
+            fontSize: '0.85rem',
+            color: '#c9d1d9',
+            lineHeight: 1.5,
+            border: '1px solid #30363d'
+          }}>
+            {logs.length === 0 ? (
+              <div style={{ color: '#8b949e', fontStyle: 'italic' }}>Waiting for server logs...</div>
+            ) : (
+              logs.map((line, i) => {
+                let color = '#c9d1d9'; // default
+                if (line.includes('INFO:')) color = '#58a6ff';
+                if (line.includes('ERROR:') || line.includes('error')) color = '#f85149';
+                if (line.includes('✓') || line.includes('Success')) color = '#3fb950';
+                if (line.includes('Rate limited') || line.includes('WARNING')) color = '#d29922';
+                
+                return (
+                  <div key={i} style={{ color, whiteSpace: 'pre-wrap', wordBreak: 'break-all', marginBottom: '2px' }}>
+                    {line}
+                  </div>
+                );
+              })
+            )}
+            <div ref={terminalEndRef} />
+          </div>
+        </div>
+
         <div className={styles.tableContainer}>
           <table className={styles.table}>
             <thead>

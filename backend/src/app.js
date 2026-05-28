@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import 'dotenv/config.js';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { supabasePlugin } from './plugins/supabase.js';
@@ -7,28 +7,46 @@ import { sourceRoutes } from './routes/sources.js';
 import adminRoutes from './routes/admin.js';
 import { startCronJobs } from './jobs/refreshFeeds.js';
 
+import path from 'path';
+import fs from 'fs';
+
+const logFile = path.join(process.cwd(), 'app.log');
+
+// Clear the log file on startup to prevent infinite growth
+if (fs.existsSync(logFile)) {
+  fs.writeFileSync(logFile, '');
+}
+
 const fastify = Fastify({
   logger: {
     level: 'info',
     transport: {
-      target: 'pino-pretty',
-      options: { translateTime: 'HH:MM:ss', ignore: 'pid,hostname' }
+      targets: [
+        {
+          target: 'pino-pretty',
+          options: { translateTime: 'HH:MM:ss', ignore: 'pid,hostname' }
+        },
+        {
+          target: 'pino-pretty',
+          options: { translateTime: 'HH:MM:ss', ignore: 'pid,hostname', destination: logFile, colorize: false }
+        }
+      ]
     }
   }
 });
 
 // Plugins
-await fastify.register(cors, {
+fastify.register(cors, {
   origin: true, // Allow all origins in dev; lock down in production
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 });
 
-await fastify.register(supabasePlugin);
+fastify.register(supabasePlugin);
 
 // Routes
-await fastify.register(articleRoutes, { prefix: '/api' });
-await fastify.register(sourceRoutes, { prefix: '/api' });
-await fastify.register(adminRoutes, { prefix: '/api/admin' });
+fastify.register(articleRoutes, { prefix: '/api' });
+fastify.register(sourceRoutes, { prefix: '/api' });
+fastify.register(adminRoutes, { prefix: '/api/admin' });
 
 // Health check
 fastify.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
