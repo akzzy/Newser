@@ -32,13 +32,10 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       let API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      if (typeof window !== 'undefined') {
+      if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
         const hostname = window.location.hostname;
         if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.startsWith('127.')) {
-          API_BASE = `https://${hostname}:3001`; // Usually HTTPS in prod
-          if (API_BASE.includes('api.kopy.space')) {
-             API_BASE = 'https://api.kopy.space'; // Fix port if cPanel
-          }
+          API_BASE = `http://${hostname}:3001`; 
         }
       }
       setApiBase(API_BASE);
