@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { Article, ArticleDetail } from '@/lib/api';
+import type { Article } from '@/lib/api';
 
 interface ArticleStore {
   articles: Article[];
@@ -10,7 +10,7 @@ interface ArticleStore {
   hasMore: boolean;
   isLoading: boolean;
   category: string;
-  drawerArticle: ArticleDetail | null;
+  drawerArticle: Article | null;
   isDrawerOpen: boolean;
   guestId: string | null;
 
@@ -21,7 +21,7 @@ interface ArticleStore {
   setPage: (page: number) => void;
   setLoading: (loading: boolean) => void;
   setCategory: (category: string) => void;
-  openDrawer: (article: ArticleDetail) => void;
+  openDrawer: (article: Article) => void;
   closeDrawer: () => void;
 }
 
