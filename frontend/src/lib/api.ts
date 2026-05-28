@@ -55,7 +55,8 @@ export async function fetchArticles(
   });
 
   const res = await fetch(`${API_BASE}/api/articles?${params}`, {
-    next: { revalidate: 60 }
+    cache: 'no-store',
+    headers: { 'Cache-Control': 'no-cache' }
   });
 
   if (!res.ok) throw new Error('Failed to fetch articles');

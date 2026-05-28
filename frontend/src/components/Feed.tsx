@@ -127,10 +127,16 @@ export default function Feed() {
       setPtrOffset(40); // Stick open while loading
       await loadArticles(1, category, true); // True forces a fresh replacement
       
-      // Force scroll to top after DOM paints
-      setTimeout(() => {
-        if (feedRef.current) feedRef.current.scrollTo({ top: 0, behavior: 'auto' });
-      }, 50);
+      // Aggressively defeat Safari/Mobile scroll anchoring
+      let frames = 0;
+      const forceScroll = () => {
+        if (feedRef.current) feedRef.current.scrollTop = 0;
+        if (frames < 5) {
+          frames++;
+          requestAnimationFrame(forceScroll);
+        }
+      };
+      requestAnimationFrame(forceScroll);
 
       setIsRefreshing(false);
       setPtrOffset(0); // Snap shut
@@ -152,10 +158,16 @@ export default function Feed() {
       setPtrOffset(40); // Show the spinner so they know it's loading
       await loadArticles(1, category, true);
       
-      // Force scroll to top after DOM paints
-      setTimeout(() => {
-        if (feedRef.current) feedRef.current.scrollTo({ top: 0, behavior: 'auto' });
-      }, 50);
+      // Aggressively defeat Safari/Mobile scroll anchoring
+      let frames = 0;
+      const forceScroll = () => {
+        if (feedRef.current) feedRef.current.scrollTop = 0;
+        if (frames < 5) {
+          frames++;
+          requestAnimationFrame(forceScroll);
+        }
+      };
+      requestAnimationFrame(forceScroll);
 
       setIsRefreshing(false);
       setPtrOffset(0);
@@ -222,7 +234,8 @@ export default function Feed() {
         className={`${styles.feedContainer} hide-scrollbar`}
         style={{
           transform: `translateY(${ptrOffset}px)`,
-          transition: isRefreshing ? 'transform 0.3s ease' : ptrStartY === 0 ? 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none'
+          transition: isRefreshing ? 'transform 0.3s ease' : ptrStartY === 0 ? 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
+          overflowY: isRefreshing ? 'hidden' : 'scroll'
         }}
         onScroll={handleScroll}
         onTouchStart={handleTouchStart}
