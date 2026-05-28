@@ -126,6 +126,12 @@ export default function Feed() {
       triggerHaptic('medium');
       setPtrOffset(40); // Stick open while loading
       await loadArticles(1, category, true); // True forces a fresh replacement
+      
+      // Force scroll to top after DOM paints
+      setTimeout(() => {
+        if (feedRef.current) feedRef.current.scrollTo({ top: 0, behavior: 'auto' });
+      }, 50);
+
       setIsRefreshing(false);
       setPtrOffset(0); // Snap shut
     } else {
@@ -145,6 +151,12 @@ export default function Feed() {
       setIsRefreshing(true);
       setPtrOffset(40); // Show the spinner so they know it's loading
       await loadArticles(1, category, true);
+      
+      // Force scroll to top after DOM paints
+      setTimeout(() => {
+        if (feedRef.current) feedRef.current.scrollTo({ top: 0, behavior: 'auto' });
+      }, 50);
+
       setIsRefreshing(false);
       setPtrOffset(0);
     }
