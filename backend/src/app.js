@@ -18,6 +18,7 @@ if (fs.existsSync(logFile)) {
 }
 
 const fastify = Fastify({
+  disableRequestLogging: true,
   logger: {
     level: 'info',
     transport: {
@@ -60,8 +61,12 @@ const start = async () => {
     await fastify.listen({ port, host });
     fastify.log.info(`Newser API running on http://${host}:${port}`);
 
-    // Start cron jobs after server is up
-    startCronJobs(fastify);
+    // Start cron jobs after server is up (unless disabled in .env)
+    if (process.env.ENABLE_CRON_JOBS !== 'false') {
+      startCronJobs(fastify);
+    } else {
+      fastify.log.info('Cron jobs are disabled via .env (Local Dev Mode)');
+    }
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
