@@ -1,0 +1,180 @@
+.scrollContainer {
+  height: 100dvh;
+  overflow-y: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollContainer::-webkit-scrollbar {
+  display: none;
+}
+
+.pageHeader {
+  padding: calc(60px + env(safe-area-inset-top, 0px)) 20px 20px 20px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-black);
+  z-index: 100;
+}
+
+.pageTitle {
+  font-family: var(--font-primary);
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -1px;
+}
+
+.gridContainer {
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px calc(120px + env(safe-area-inset-bottom, 0px)) 20px;
+}
+
+.conceptCard {
+  position: sticky;
+  min-height: 160px;
+  border-radius: 36px;
+  margin-top: -30px; /* Upwards overlap */
+  padding: 24px 24px 20px 24px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+  /* Dark flat style: slightly lighter than black, but solid */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.conceptCard:first-child {
+  margin-top: 0;
+}
+
+.conceptCard:active {
+  transform: scale(0.97) translateY(4px);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.cardTitle {
+  font-family: var(--font-primary);
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  max-width: 75%;
+}
+
+.cardStat {
+  font-family: var(--font-secondary);
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 4px;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 32px;
+}
+
+.pillGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-family: var(--font-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+}
+
+.actionButton {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* -------------------------------------
+   Variant: Topics (Bold & Minimal)
+   ------------------------------------- */
+.topicCard {
+  position: sticky;
+  height: 130px;
+  border-radius: 24px;
+  margin-top: -24px;
+  padding: 24px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+  
+  /* Premium Solid Dark Theme */
+  background: #1C1C1E !important; /* Solid dark gray (Apple standard) */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dummyCard {
+  height: 39px !important;
+  min-height: 39px !important;
+  margin-top: -24px !important;
+  padding: 0 !important;
+  border-bottom: none;
+  border-radius: 24px 24px 0 0; /* Only round the top so it looks like a card edge */
+}
+
+.topicCard:first-child {
+  margin-top: 0;
+}
+
+.topicCard:active {
+  transform: scale(0.97) translateY(4px);
+}
+
+.topicTitle {
+  font-family: var(--font-primary);
+  font-size: 38px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* -------------------------------------
+   Sticky Wallet Stacking Physics
+   ------------------------------------- */
+/* Full Page Stacking */
+.conceptCard:nth-child(1), .topicCard:nth-child(1) { top: calc(120px + env(safe-area-inset-top, 0px)); }
+.conceptCard:nth-child(2), .topicCard:nth-child(2) { top: calc(135px + env(safe-area-inset-top, 0px)); }
+.conceptCard:nth-child(3), .topicCard:nth-child(3) { top: calc(150px + env(safe-area-inset-top, 0px)); }
+.conceptCard:nth-child(4), .topicCard:nth-child(4) { top: calc(165px + env(safe-area-inset-top, 0px)); }
+.conceptCard:nth-child(5), .topicCard:nth-child(5) { top: calc(180px + env(safe-area-inset-top, 0px)); }
+.conceptCard:nth-child(6), .topicCard:nth-child(6) { top: calc(195px + env(safe-area-inset-top, 0px)); }
+.conceptCard:nth-child(n+7), .topicCard:nth-child(n+7) { top: calc(210px + env(safe-area-inset-top, 0px)); }
+
+/* Inline Stacking (Inside isolated scroll containers) */
+.inlineContainer .conceptCard:nth-child(1), .inlineContainer .topicCard:nth-child(1) { top: 16px; }
+.inlineContainer .conceptCard:nth-child(2), .inlineContainer .topicCard:nth-child(2) { top: 31px; }
+.inlineContainer .conceptCard:nth-child(n+3), .inlineContainer .topicCard:nth-child(n+3) { top: 46px; }
