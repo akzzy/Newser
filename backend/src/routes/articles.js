@@ -166,59 +166,64 @@ export async function articleRoutes(fastify) {
       // Deduplicate
       extendedPreferred = [...new Set(extendedPreferred)];
 
-      // Split pool
-      const primary = finalData.filter(a => preferredLower.includes(normalizeCat(a.ai_category || '')));
-      const relatedPool = finalData.filter(a => 
-        !preferredLower.includes(normalizeCat(a.ai_category || '')) && 
-        extendedPreferred.includes(normalizeCat(a.ai_category || ''))
-      );
-      const general = finalData.filter(a => !extendedPreferred.includes(normalizeCat(a.ai_category || '')));
-      
-      const mixed = [];
-      let pIdx = 0, rIdx = 0, gIdx = 0;
-      
-      const isMulti = preferredLower.length >= 3;
-      const isDual = preferredLower.length === 2;
-      const frontLoadCount = isMulti ? 12 : (isDual ? 6 : 4);
-      const primaryWeaveCount = isMulti ? 10 : (isDual ? 5 : 2);
-      const generalChance = isMulti ? 0.1 : (isDual ? 0.25 : 0.5);
-
-      // Aggressively front-load primary articles so the user's exact interests
-      // appear immediately, strictly sorted by newest release time.
-      while (pIdx < frontLoadCount && pIdx < primary.length) {
-        mixed.push(primary[pIdx++]);
-      }
-
-      // Weave the rest based on preference density into a remainder pool
-      const remainder = [];
-      while (pIdx < primary.length || rIdx < relatedPool.length) {
+      if (preferredLower.length >= 3) {
+        // For users with diverse explicit interests (3+), completely disable algorithmic weaving.
+        // Provide a pure, unadulterated chronological feed of exactly their selected categories.
+        finalData = finalData.filter(a => preferredLower.includes(normalizeCat(a.ai_category || '')));
+        finalData = finalData.slice(offset, offset + limitNum);
+      } else {
+        // Split pool for users with fewer interests to prevent feed exhaustion and boredom
+        const primary = finalData.filter(a => preferredLower.includes(normalizeCat(a.ai_category || '')));
+        const relatedPool = finalData.filter(a => 
+          !preferredLower.includes(normalizeCat(a.ai_category || '')) && 
+          extendedPreferred.includes(normalizeCat(a.ai_category || ''))
+        );
+        const general = finalData.filter(a => !extendedPreferred.includes(normalizeCat(a.ai_category || '')));
         
-        // Push primary articles
-        for (let i = 0; i < primaryWeaveCount; i++) {
-          if (pIdx < primary.length) remainder.push(primary[pIdx++]);
+        const mixed = [];
+        let pIdx = 0, rIdx = 0, gIdx = 0;
+        
+        const isDual = preferredLower.length === 2;
+        const frontLoadCount = isDual ? 6 : 4;
+        const primaryWeaveCount = isDual ? 5 : 2;
+        const generalChance = isDual ? 0.25 : 0.5;
+
+        // Aggressively front-load primary articles so the user's exact interests
+        // appear immediately, strictly sorted by newest release time.
+        while (pIdx < frontLoadCount && pIdx < primary.length) {
+          mixed.push(primary[pIdx++]);
+        }
+
+        // Weave the rest based on preference density into a remainder pool
+        const remainder = [];
+        while (pIdx < primary.length || rIdx < relatedPool.length) {
+          
+          // Push primary articles
+          for (let i = 0; i < primaryWeaveCount; i++) {
+            if (pIdx < primary.length) remainder.push(primary[pIdx++]);
+          }
+          
+          // Push 1 related
+          if (rIdx < relatedPool.length) remainder.push(relatedPool[rIdx++]);
+          
+          // Push 1 general sparingly based on probability
+          if (gIdx < general.length && Math.random() < generalChance) remainder.push(general[gIdx++]);
         }
         
-        // Push 1 related
-        if (rIdx < relatedPool.length) remainder.push(relatedPool[rIdx++]);
+        // If we run out of primary and related, fill the rest with general
+        while (gIdx < general.length) {
+          remainder.push(general[gIdx++]);
+        }
         
-        // Push 1 general sparingly based on probability
-        if (gIdx < general.length && Math.random() < generalChance) remainder.push(general[gIdx++]);
+        // Sort the remainder strictly chronologically so the timeline never jumps backward
+        remainder.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+        
+        // Combine the front-loaded primary articles with the chronologically sorted remainder
+        mixed.push(...remainder);
+        
+        // Apply pagination manually
+        finalData = mixed.slice(offset, offset + limitNum);
       }
-      
-      // If we run out of primary and related, fill the rest with general
-      while (gIdx < general.length) {
-        remainder.push(general[gIdx++]);
-      }
-      
-      // Sort the remainder strictly chronologically so the timeline never jumps backward
-      remainder.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
-      
-      // Combine the front-loaded primary articles with the chronologically sorted remainder
-      mixed.push(...remainder);
-
-      
-      // Apply pagination manually
-      finalData = mixed.slice(offset, offset + limitNum);
     } else if (needsAlgorithmicSort) {
       // Fallback if they asked for 'foryou' but have no preferences
       finalData = finalData.slice(offset, offset + limitNum);
