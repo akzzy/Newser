@@ -17,14 +17,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     openGraph: {
       title: article.title_hook,
       description: article.deep_dive_content.substring(0, 160) + '...',
-      images: [{ url: article.image_url }],
+      images: article.image_url ? [{ url: article.image_url }] : [],
       type: 'article',
     },
     twitter: {
       card: 'summary_large_image',
       title: article.title_hook,
       description: article.deep_dive_content.substring(0, 160) + '...',
-      images: [article.image_url],
+      images: article.image_url ? [article.image_url] : [],
     }
   };
 }
