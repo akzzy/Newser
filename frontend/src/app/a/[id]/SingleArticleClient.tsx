@@ -27,9 +27,6 @@ export default function SingleArticleClient({ article }: { article: Article }) {
         const newArticles = data.articles.filter(a => a.id !== article.id);
         useArticleStore.getState().appendArticles(newArticles, data.pagination.has_more);
       });
-      
-      // 3. Quietly rewrite the URL back to root
-      window.history.replaceState(null, '', '/');
     }
   }, [article]);
 
