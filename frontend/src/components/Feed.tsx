@@ -146,7 +146,7 @@ export default function Feed() {
       setIsRefreshing(true);
       triggerHaptic('medium');
       setPtrOffset(40); // Stick open while loading
-      await loadArticles(1, category, true); // True forces a fresh replacement
+      await loadArticles(1, category, source, sort, true); // True forces a fresh replacement
       
       // Aggressively defeat Safari/Mobile scroll anchoring
       let frames = 0;
@@ -179,7 +179,7 @@ export default function Feed() {
       setPtrOffset(40); // Show the spinner so they know it's loading
       setPage(1);
       await loadArticles(1, category, source, sort, true);
-      triggerHaptic('success');
+      triggerHaptic('medium');
       
       // Aggressively defeat Safari/Mobile scroll anchoring
       let frames = 0;
