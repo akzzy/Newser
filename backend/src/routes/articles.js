@@ -177,23 +177,31 @@ export async function articleRoutes(fastify) {
       const mixed = [];
       let pIdx = 0, rIdx = 0, gIdx = 0;
       
-      // Always aggressively front-load up to 4 primary articles so the user's exact interests
-      // (whether single or multiple) appear immediately, strictly sorted by newest release time.
-      while (pIdx < 4 && pIdx < primary.length) {
+      const isMulti = preferredLower.length >= 3;
+      const isDual = preferredLower.length === 2;
+      const frontLoadCount = isMulti ? 12 : (isDual ? 6 : 4);
+      const primaryWeaveCount = isMulti ? 10 : (isDual ? 5 : 2);
+      const generalChance = isMulti ? 0.1 : (isDual ? 0.25 : 0.5);
+
+      // Aggressively front-load primary articles so the user's exact interests
+      // appear immediately, strictly sorted by newest release time.
+      while (pIdx < frontLoadCount && pIdx < primary.length) {
         mixed.push(primary[pIdx++]);
       }
 
-      // Weave the rest
+      // Weave the rest based on preference density
       while (pIdx < primary.length || rIdx < relatedPool.length) {
-        // Always try to keep pushing primary if we have it
-        if (pIdx < primary.length) mixed.push(primary[pIdx++]);
-        if (pIdx < primary.length) mixed.push(primary[pIdx++]);
+        
+        // Push primary articles
+        for (let i = 0; i < primaryWeaveCount; i++) {
+          if (pIdx < primary.length) mixed.push(primary[pIdx++]);
+        }
         
         // Push 1 related
         if (rIdx < relatedPool.length) mixed.push(relatedPool[rIdx++]);
         
-        // Push 1 general sparingly
-        if (gIdx < general.length && Math.random() > 0.5) mixed.push(general[gIdx++]);
+        // Push 1 general sparingly based on probability
+        if (gIdx < general.length && Math.random() < generalChance) mixed.push(general[gIdx++]);
       }
       
       // If we run out of primary and related, fill the rest with general
