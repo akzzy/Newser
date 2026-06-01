@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useCallback, useState } from 'react';
 import { useArticleStore } from '@/store/useArticleStore';
-import { fetchArticles, fetchCategories } from '@/lib/api';
+import { fetchArticles, fetchCategories, trackInteraction } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
 import ArticleCard, { ArticleCardSkeleton } from './ArticleCard';
 import ReaderDrawer from './ReaderDrawer';
@@ -22,8 +22,15 @@ export default function Feed() {
     setPage,
     setLoading,
     setCategory,
+    source,
+    setSource,
+    sort,
     isDrawerOpen,
     guestId,
+    hasCompletedOnboarding,
+    showOnboardingPopup,
+    sharedLinkMode,
+    setShowOnboardingPopup,
     initializeGuestId
   } = useArticleStore();
 
@@ -45,19 +52,20 @@ export default function Feed() {
     fetchCategories().then(setCategories).catch(console.error);
   }, []);
 
-  // Force scroll to top when new articles are loaded (defeats browser scroll anchoring before paint)
+  // Restore scroll position on mount, and defeat browser scroll anchoring on refresh
   const topArticleId = articles[0]?.id;
   useLayoutEffect(() => {
     if (feedRef.current) {
-      feedRef.current.scrollTop = 0;
+      feedRef.current.scrollTop = currentIndex * feedRef.current.clientHeight;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topArticleId]);
 
   // Load articles
-  const loadArticles = useCallback(async (pageNum: number, cat: string, replace = false) => {
+  const loadArticles = useCallback(async (pageNum: number, cat: string, src: string, sortOrder: string, replace = false) => {
     setLoading(true);
     try {
-      const data = await fetchArticles(pageNum, 20, cat, guestId);
+      const data = await fetchArticles(pageNum, 20, cat, src, sortOrder, guestId);
       if (replace) {
         setArticles(data.articles, data.pagination.has_more);
       } else {
@@ -68,14 +76,14 @@ export default function Feed() {
     } finally {
       setLoading(false);
     }
-  }, [setArticles, appendArticles, setLoading]);
+  }, [setArticles, appendArticles, setLoading, guestId]);
 
   // Initial load
   useEffect(() => {
-    if (guestId !== null || typeof window === 'undefined') {
-      loadArticles(1, category, true);
+    if (guestId !== null && articles.length === 0) {
+      loadArticles(1, category, source, sort, true);
     }
-  }, [category, loadArticles, guestId]);
+  }, [category, source, sort, loadArticles, guestId, articles.length]);
 
   // Track current card via scroll position
   const handleScroll = useCallback(() => {
@@ -88,15 +96,20 @@ export default function Feed() {
 
     if (newIndex !== currentIndex) {
       setCurrentIndex(newIndex);
+      
+      // Delayed onboarding trigger for all users (after 4 swipes)
+      if (!hasCompletedOnboarding && !showOnboardingPopup && newIndex >= 4) {
+        setShowOnboardingPopup(true);
+      }
     }
 
     // Preload more when near end
     if (newIndex >= articles.length - 3 && hasMore && !isLoading) {
       const nextPage = page + 1;
       setPage(nextPage);
-      loadArticles(nextPage, category);
+      loadArticles(nextPage, category, source, sort);
     }
-  }, [articles.length, currentIndex, hasMore, isLoading, page, category, setCurrentIndex, setPage, loadArticles]);
+  }, [articles.length, currentIndex, hasMore, isLoading, page, category, source, sort, setCurrentIndex, setPage, loadArticles, sharedLinkMode, hasCompletedOnboarding, showOnboardingPopup, setShowOnboardingPopup]);
 
   // Category change handler
   const handleCategoryChange = useCallback((cat: string) => {
@@ -164,7 +177,9 @@ export default function Feed() {
     if (!isRefreshing) {
       setIsRefreshing(true);
       setPtrOffset(40); // Show the spinner so they know it's loading
-      await loadArticles(1, category, true);
+      setPage(1);
+      await loadArticles(1, category, source, sort, true);
+      triggerHaptic('success');
       
       // Aggressively defeat Safari/Mobile scroll anchoring
       let frames = 0;
@@ -195,16 +210,20 @@ export default function Feed() {
       {categories.length > 1 && (
         <nav className={styles.categoryBar}>
           <div className={styles.categoryScroll}>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                className={`${styles.categoryTab} ${cat === category ? styles.categoryTabActive : ''}`}
-                onClick={() => handleCategoryChange(cat)}
-                id={`category-${cat}`}
-              >
-                {cat === 'all' ? 'For You' : cat}
-              </button>
-            ))}
+            {categories.map((cat) => {
+              if (cat === 'all' && !hasCompletedOnboarding) return null;
+              
+              return (
+                <button
+                  key={cat}
+                  className={`${styles.categoryTab} ${cat === category ? styles.categoryTabActive : ''}`}
+                  onClick={() => handleCategoryChange(cat)}
+                  id={`category-${cat}`}
+                >
+                  {cat === 'all' ? 'For You' : cat}
+                </button>
+              );
+            })}
           </div>
         </nav>
       )}

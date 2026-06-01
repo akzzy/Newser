@@ -1,0 +1,130 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000000;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  padding: 40px 20px;
+  color: white;
+  animation: overlayFadeIn 0.5s ease-out forwards;
+  overflow-y: auto;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.header {
+  margin-top: 40px;
+  margin-bottom: 40px;
+  text-align: center;
+  opacity: 0;
+  animation: slideDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #fff 0%, #a0a0a0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: #888;
+  font-weight: 500;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  max-width: 500px;
+  margin: 0 auto;
+  opacity: 0;
+  animation: popIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92) translateY(30px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.pill {
+  padding: 16px 24px;
+  border-radius: 12px; /* Brutalist/Minimal instead of full round */
+  background: #111;
+  border: 1px solid #333;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pill:active {
+  transform: scale(0.95);
+}
+
+.pill.selected {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: 40px;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 20px;
+  opacity: 0;
+  animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.button {
+  background: #fff;
+  color: #000;
+  border: none;
+  border-radius: 100px;
+  padding: 20px 40px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  max-width: 350px;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
+}
+
+.button:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.button:not(:disabled):active {
+  transform: scale(0.97);
+}
