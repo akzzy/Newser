@@ -80,7 +80,9 @@ export default function Feed() {
 
   // Initial load
   useEffect(() => {
-    if (guestId !== null && articles.length === 0) {
+    // Only auto-load if NOT on a shared link page (SingleArticleClient handles the initial load for shared links)
+    const isSharedPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/a/');
+    if (guestId !== null && articles.length === 0 && !isSharedPage) {
       loadArticles(1, category, source, sort, true);
     }
   }, [category, source, sort, loadArticles, guestId, articles.length]);
