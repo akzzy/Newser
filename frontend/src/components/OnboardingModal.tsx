@@ -39,7 +39,7 @@ export default function OnboardingModal() {
   const handleSubmit = async () => {
     if (selected.size === 0) return;
     
-    triggerHaptic('success');
+    triggerHaptic('medium');
     setIsSubmitting(true);
     
     // Convert to lowercase to match backend AI categories if needed, or leave as is.
