@@ -189,25 +189,33 @@ export async function articleRoutes(fastify) {
         mixed.push(primary[pIdx++]);
       }
 
-      // Weave the rest based on preference density
+      // Weave the rest based on preference density into a remainder pool
+      const remainder = [];
       while (pIdx < primary.length || rIdx < relatedPool.length) {
         
         // Push primary articles
         for (let i = 0; i < primaryWeaveCount; i++) {
-          if (pIdx < primary.length) mixed.push(primary[pIdx++]);
+          if (pIdx < primary.length) remainder.push(primary[pIdx++]);
         }
         
         // Push 1 related
-        if (rIdx < relatedPool.length) mixed.push(relatedPool[rIdx++]);
+        if (rIdx < relatedPool.length) remainder.push(relatedPool[rIdx++]);
         
         // Push 1 general sparingly based on probability
-        if (gIdx < general.length && Math.random() < generalChance) mixed.push(general[gIdx++]);
+        if (gIdx < general.length && Math.random() < generalChance) remainder.push(general[gIdx++]);
       }
       
       // If we run out of primary and related, fill the rest with general
       while (gIdx < general.length) {
-        mixed.push(general[gIdx++]);
+        remainder.push(general[gIdx++]);
       }
+      
+      // Sort the remainder strictly chronologically so the timeline never jumps backward
+      remainder.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+      
+      // Combine the front-loaded primary articles with the chronologically sorted remainder
+      mixed.push(...remainder);
+
       
       // Apply pagination manually
       finalData = mixed.slice(offset, offset + limitNum);
