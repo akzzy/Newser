@@ -12,6 +12,7 @@ export async function articleRoutes(fastify) {
       limit = 20,
       category = 'all',
       source = 'all',
+      sort = 'foryou',
       guest_id = null
     } = request.query;
 
@@ -47,6 +48,7 @@ export async function articleRoutes(fastify) {
         ai_tags,
         published_at,
         url,
+        importance_score,
         source_id,
         sources!inner (
           name,
@@ -58,17 +60,18 @@ export async function articleRoutes(fastify) {
       .eq('rewrite_status', 'completed')
       .not('title_hook', 'is', null);
 
-    // Apply sorting logic
-    if (preferredCategories.length > 0) {
-      // If we have preferences, we order by matching categories first, THEN by published_at.
-      // Supabase REST API doesn't easily support dynamic CASE WHEN sorting in a simple query, 
-      // but we can pull a slightly larger dataset, sort in memory, and paginate.
-      // For this MVP, we will fetch up to 100 recent articles and sort them.
+    // Apply sorting logic (Fetch larger pool if we need to algorithmic sort)
+    const needsAlgorithmicSort = sort === 'trending' || sort === 'top_today' || (sort === 'foryou' && preferredCategories.length > 0);
+    
+    if (needsAlgorithmicSort) {
+      // Pull up to 500 recent articles for deep algorithmic sorting
+      // This ensures we find enough niche category articles (like Automotive) 
+      // even if they aren't the absolute most recent.
       query = query
         .order('published_at', { ascending: false })
-        .limit(100);
+        .limit(500);
     } else {
-      // Standard chronological sorting
+      // Standard direct database pagination
       query = query
         .order('published_at', { ascending: false })
         .range(offset, offset + limitNum - 1);
@@ -91,26 +94,124 @@ export async function articleRoutes(fastify) {
       return reply.status(500).send({ error: 'Failed to fetch articles' });
     }
 
-    // 3. Algorithmic sorting for personalized feed
+    // 3. Algorithmic sorting for personalized/trending feeds
     let finalData = data || [];
     let totalCount = count || (data ? data.length : 0);
 
-    if (preferredCategories.length > 0 && category === 'all') {
-      // Split into preferred and general
-      const preferred = finalData.filter(a => preferredCategories.includes(a.ai_category));
-      const general = finalData.filter(a => !preferredCategories.includes(a.ai_category));
+    if (sort === 'trending') {
+      finalData.sort((a, b) => {
+        const timeA = (Date.now() - new Date(a.published_at).getTime()) / 3600000;
+        const timeB = (Date.now() - new Date(b.published_at).getTime()) / 3600000;
+        const scoreA = ((a.importance_score || 1) + Math.random() * 0.5) / Math.pow(timeA + 2, 1.5);
+        const scoreB = ((b.importance_score || 1) + Math.random() * 0.5) / Math.pow(timeB + 2, 1.5);
+        return scoreB - scoreA;
+      });
+      finalData = finalData.slice(offset, offset + limitNum);
+    } else if (sort === 'top_today') {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      finalData = finalData.filter(a => new Date(a.published_at) >= oneDayAgo);
       
-      // Mix them (e.g. 2 preferred, then 1 general)
+      finalData.sort((a, b) => {
+        const impA = a.importance_score || 1;
+        const impB = b.importance_score || 1;
+        if (impA !== impB) return impB - impA;
+        
+        const getReadTimeScore = (rt) => rt === 'Long' ? 3 : (rt === 'Medium' ? 2 : 1);
+        const rtA = getReadTimeScore(a.read_time);
+        const rtB = getReadTimeScore(b.read_time);
+        if (rtA !== rtB) return rtB - rtA;
+
+        return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+      });
+      finalData = finalData.slice(offset, offset + limitNum);
+    } else if (sort === 'foryou' && preferredCategories.length > 0 && category === 'all') {
+      const normalizeCat = (c) => {
+        let n = c.toLowerCase().trim();
+        if (n === 'startup') return 'startups';
+        if (n === 'auto') return 'automotive';
+        if (n === 'tech') return 'technology';
+        return n;
+      };
+      
+      const preferredLower = preferredCategories.map(normalizeCat);
+      
+      const SIMILARITY_MAP = {
+        'ai': ['software', 'hardware', 'startups'],
+        'mobile': ['hardware', 'software', 'technology'],
+        'startups': ['business', 'technology', 'finance'],
+        'gaming': ['entertainment', 'software', 'hardware'],
+        'science': ['technology', 'health', 'space'],
+        'security': ['software', 'internet', 'technology'],
+        'software': ['technology', 'ai', 'internet'],
+        'hardware': ['technology', 'mobile', 'gaming'],
+        'business': ['finance', 'startups', 'world'],
+        'internet': ['software', 'security', 'technology'],
+        'automotive': ['technology', 'hardware', 'business'],
+        'politics': ['world', 'business', 'finance'],
+        'world': ['politics', 'business', 'science'],
+        'sports': ['entertainment', 'world', 'culture'],
+        'entertainment': ['culture', 'gaming', 'world'],
+        'finance': ['business', 'startups', 'politics'],
+        'health': ['science', 'world', 'technology'],
+        'technology': ['software', 'hardware', 'ai']
+      };
+
+      let extendedPreferred = [...preferredLower];
+      let isSingleCategoryExpansion = false;
+
+      // Always expand preferences to keep the feed rich and prevent boredom
+      preferredLower.forEach(cat => {
+        const related = SIMILARITY_MAP[cat] || [];
+        extendedPreferred.push(...related.slice(0, 2));
+      });
+      // Deduplicate
+      extendedPreferred = [...new Set(extendedPreferred)];
+
+      if (preferredLower.length === 1) {
+        isSingleCategoryExpansion = true;
+      }
+
+      // Split pool
+      const primary = finalData.filter(a => preferredLower.includes(normalizeCat(a.ai_category || '')));
+      const relatedPool = finalData.filter(a => 
+        !preferredLower.includes(normalizeCat(a.ai_category || '')) && 
+        extendedPreferred.includes(normalizeCat(a.ai_category || ''))
+      );
+      const general = finalData.filter(a => !extendedPreferred.includes(normalizeCat(a.ai_category || '')));
+      
       const mixed = [];
-      let pIdx = 0, gIdx = 0;
-      while (pIdx < preferred.length || gIdx < general.length) {
-        if (pIdx < preferred.length) mixed.push(preferred[pIdx++]);
-        if (pIdx < preferred.length) mixed.push(preferred[pIdx++]); // 2x weight
-        if (gIdx < general.length) mixed.push(general[gIdx++]);
+      let pIdx = 0, rIdx = 0, gIdx = 0;
+      
+      // If single category, aggressively front-load up to 4 primary articles
+      if (isSingleCategoryExpansion) {
+        while (pIdx < 4 && pIdx < primary.length) {
+          mixed.push(primary[pIdx++]);
+        }
+      }
+
+      // Weave the rest
+      while (pIdx < primary.length || rIdx < relatedPool.length) {
+        // Always try to keep pushing primary if we have it
+        if (pIdx < primary.length) mixed.push(primary[pIdx++]);
+        if (pIdx < primary.length) mixed.push(primary[pIdx++]);
+        
+        // Push 1 related
+        if (rIdx < relatedPool.length) mixed.push(relatedPool[rIdx++]);
+        
+        // Push 1 general sparingly
+        if (gIdx < general.length && Math.random() > 0.5) mixed.push(general[gIdx++]);
+      }
+      
+      // If we run out of primary and related, fill the rest with general
+      while (gIdx < general.length) {
+        mixed.push(general[gIdx++]);
       }
       
       // Apply pagination manually
       finalData = mixed.slice(offset, offset + limitNum);
+    } else if (needsAlgorithmicSort) {
+      // Fallback if they asked for 'foryou' but have no preferences
+      finalData = finalData.slice(offset, offset + limitNum);
     }
 
     // Reshape the response
@@ -148,10 +249,13 @@ export async function articleRoutes(fastify) {
    * Record a user interaction to build their preference profile.
    */
   fastify.post('/interactions', async (request, reply) => {
-    const { guest_id, category, action } = request.body || {};
+    const { guest_id, category, categories, action, score } = request.body || {};
     
-    if (!guest_id || !category) {
-      return reply.status(400).send({ error: 'guest_id and category are required' });
+    // Support either single category or array of categories (for onboarding bulk insert)
+    const categoryList = categories || (category ? [category] : []);
+
+    if (!guest_id || categoryList.length === 0) {
+      return reply.status(400).send({ error: 'guest_id and category/categories are required' });
     }
 
     try {
@@ -160,25 +264,43 @@ export async function articleRoutes(fastify) {
         .from('guest_profiles')
         .upsert({ id: guest_id, last_active: new Date().toISOString() }, { onConflict: 'id' });
 
-      // 2. Fetch existing score
-      const { data: existing } = await fastify.supabase
-        .from('guest_preferences')
-        .select('score')
-        .eq('guest_id', guest_id)
-        .eq('category', category)
-        .single();
+      // 2. Prepare data for upsert
+      let upsertData = [];
+      const timestamp = new Date().toISOString();
 
-      const newScore = (existing?.score || 0) + (action === 'share' ? 3 : 1);
-
-      // 3. Upsert new score
-      await fastify.supabase
-        .from('guest_preferences')
-        .upsert({
+      if (categoryList.length > 1 || score !== undefined) {
+        // Bulk insert (Onboarding) - just set the score directly
+        upsertData = categoryList.map(cat => ({
           guest_id,
-          category,
+          category: cat,
+          score: score || 10, // Default to a high score for explicit onboarding choice
+          updated_at: timestamp
+        }));
+      } else {
+        // Single interaction (Read/Like/Share) - fetch existing and increment
+        const singleCat = categoryList[0];
+        const { data: existing } = await fastify.supabase
+          .from('guest_preferences')
+          .select('score')
+          .eq('guest_id', guest_id)
+          .eq('category', singleCat)
+          .single();
+
+        const newScore = (existing?.score || 0) + (action === 'share' ? 3 : action === 'like' ? 2 : 1);
+        upsertData = [{
+          guest_id,
+          category: singleCat,
           score: newScore,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'guest_id,category' });
+          updated_at: timestamp
+        }];
+      }
+
+      // 3. Upsert into database (handles both single and array payloads in one query)
+      const { error: upsertErr } = await fastify.supabase
+        .from('guest_preferences')
+        .upsert(upsertData, { onConflict: 'guest_id,category' });
+
+      if (upsertErr) throw upsertErr;
 
       return { success: true };
     } catch (err) {
