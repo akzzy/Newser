@@ -157,35 +157,6 @@ export default function ArticleCard({ article }: ArticleCardProps) {
               <span className={styles.sourceTime}>{timeAgo(article.published_at)}</span>
             </div>
           )}
-
-          <div className={styles.actionSpacer} />
-
-          <button
-            className={`${styles.iconBtn} ${liked ? styles.iconBtnActive : ''}`}
-            onClick={() => setLiked(!liked)}
-            aria-label={liked ? 'Unlike' : 'Like'}
-            id={`like-${article.id}`}
-          >
-            <HeartIcon filled={liked} />
-          </button>
-
-          <button
-            className={`${styles.iconBtn} ${bookmarked ? styles.iconBtnActive : ''}`}
-            onClick={() => setBookmarked(!bookmarked)}
-            aria-label={bookmarked ? 'Remove bookmark' : 'Bookmark'}
-            id={`bookmark-${article.id}`}
-          >
-            <BookmarkIcon />
-          </button>
-
-          <button
-            className={styles.iconBtn}
-            onClick={handleShare}
-            aria-label="Share article"
-            id={`share-${article.id}`}
-          >
-            <ShareIcon />
-          </button>
         </div>
       </div>
     </div>
@@ -203,10 +174,6 @@ export function ArticleCardSkeleton() {
         <div className={`${styles.skeletonTitle2} skeleton`} />
         <div className={styles.skeletonRow}>
           <div className={`${styles.skeletonBtn} skeleton`} />
-          <div style={{ flex: 1 }} />
-          <div className={`${styles.skeletonCircle} skeleton`} />
-          <div className={`${styles.skeletonCircle} skeleton`} />
-          <div className={`${styles.skeletonCircle} skeleton`} />
         </div>
       </div>
     </div>

@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from 'next';
+import FloatingActionBar from '@/components/FloatingActionBar';
+import OnboardingModal from '@/components/OnboardingModal';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -28,7 +30,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <FloatingActionBar />
+        <OnboardingModal />
+      </body>
     </html>
   );
 }

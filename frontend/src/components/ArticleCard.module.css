@@ -73,7 +73,7 @@
   flex-direction: column;
   justify-content: flex-start; /* Flows elements top-down naturally */
   padding: var(--space-md);
-  padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--space-md) + 75px + env(safe-area-inset-bottom, 0px));
   gap: var(--space-sm); /* Unified gaps between details */
   overflow: hidden; /* Contain ambient glow */
 }

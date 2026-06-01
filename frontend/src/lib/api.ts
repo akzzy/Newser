@@ -45,21 +45,53 @@ export async function fetchArticles(
   page = 1,
   limit = 20,
   category = 'all',
+  source = 'all',
+  sort = 'foryou',
   guest_id: string | null = null
 ): Promise<ArticlesResponse> {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
     ...(category !== 'all' && { category }),
+    ...(source !== 'all' && { source }),
+    ...(sort && { sort }),
     ...(guest_id && { guest_id })
   });
 
-  const res = await fetch(`${API_BASE}/api/articles?${params}`, {
+  let retries = 2;
+  while (retries > 0) {
+    try {
+      const res = await fetch(`${API_BASE}/api/articles?${params}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch articles');
+      return await res.json();
+    } catch (err) {
+      retries--;
+      if (retries === 0) throw err;
+      // Wait 500ms before retrying to allow backend to wake up
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+  
+  throw new Error('Failed to fetch articles after retries');
+}
+
+/**
+ * Fetch a single article by ID
+ */
+export async function fetchArticleById(id: string): Promise<Article | null> {
+  const res = await fetch(`${API_BASE}/api/articles/${id}`, {
     cache: 'no-store',
     headers: { 'Cache-Control': 'no-cache' }
   });
-
-  if (!res.ok) throw new Error('Failed to fetch articles');
+  
+  if (!res.ok) {
+    return null;
+  }
+  
   return res.json();
 }
 
@@ -82,7 +114,7 @@ export async function fetchCategories(): Promise<string[]> {
 export async function trackInteraction(
   guest_id: string,
   category: string,
-  action: 'read' | 'share'
+  action: 'view' | 'read' | 'share' | 'like'
 ): Promise<void> {
   try {
     await fetch(`${API_BASE}/api/interactions`, {
@@ -95,4 +127,28 @@ export async function trackInteraction(
   } catch (error) {
     console.error('Failed to track interaction:', error);
   }
+}
+
+export interface Source {
+  id: string;
+  name: string;
+  slug: string;
+  feed_url: string;
+  website_url: string;
+  logo_url: string;
+  color: string;
+  category: string;
+}
+
+/**
+ * Fetch all active news sources (Channels)
+ */
+export async function fetchSources(): Promise<Source[]> {
+  const res = await fetch(`${API_BASE}/api/sources`, {
+    next: { revalidate: 0 } // Force refresh to load new logos
+  });
+  
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.sources || [];
 }

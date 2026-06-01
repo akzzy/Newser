@@ -1,0 +1,100 @@
+.barContainer {
+  position: fixed;
+  bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  pointer-events: none;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s ease;
+  /* Let clicks pass through the container */
+}
+
+/* Hides the entire bar by sliding it down smoothly */
+.hidden {
+  transform: translateY(150%);
+  opacity: 0;
+}
+
+.floatingBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+  /* Re-enable clicks for the actual bar */
+}
+
+/* Base style for all buttons in the bar */
+.barButton {
+  height: 52px;
+  border-radius: 26px;
+  background: rgba(45, 45, 45, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-white);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.barButton:active {
+  transform: scale(0.92);
+}
+
+/* Icon-only circular state */
+.iconOnly {
+  width: 52px;
+  color: #a0a0a0;
+}
+
+.iconOnly:hover {
+  color: var(--color-white);
+  background: rgba(60, 60, 60, 0.9);
+}
+
+/* Expanded pill state */
+.expandedPill {
+  min-width: 130px; /* 2.5x the width of the 52px circle buttons */
+  padding: 0 24px;
+  background: rgba(70, 70, 70, 0.9);
+  color: var(--color-white);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pillText {
+  font-family: var(--font-secondary);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Action buttons (Like/Share) */
+.actionBtn {
+  width: 52px;
+}
+
+.actionBtn.liked {
+  color: #ff3b30;
+  background: rgba(255, 59, 48, 0.15);
+  border-color: rgba(255, 59, 48, 0.3);
+}
+
+.actionBtn svg {
+  stroke-width: 2.25;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.actionBtn:active svg {
+  transform: scale(0.85);
+}
