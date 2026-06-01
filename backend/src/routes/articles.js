@@ -157,7 +157,6 @@ export async function articleRoutes(fastify) {
       };
 
       let extendedPreferred = [...preferredLower];
-      let isSingleCategoryExpansion = false;
 
       // Always expand preferences to keep the feed rich and prevent boredom
       preferredLower.forEach(cat => {
@@ -166,10 +165,6 @@ export async function articleRoutes(fastify) {
       });
       // Deduplicate
       extendedPreferred = [...new Set(extendedPreferred)];
-
-      if (preferredLower.length === 1) {
-        isSingleCategoryExpansion = true;
-      }
 
       // Split pool
       const primary = finalData.filter(a => preferredLower.includes(normalizeCat(a.ai_category || '')));
@@ -182,11 +177,10 @@ export async function articleRoutes(fastify) {
       const mixed = [];
       let pIdx = 0, rIdx = 0, gIdx = 0;
       
-      // If single category, aggressively front-load up to 4 primary articles
-      if (isSingleCategoryExpansion) {
-        while (pIdx < 4 && pIdx < primary.length) {
-          mixed.push(primary[pIdx++]);
-        }
+      // Always aggressively front-load up to 4 primary articles so the user's exact interests
+      // (whether single or multiple) appear immediately, strictly sorted by newest release time.
+      while (pIdx < 4 && pIdx < primary.length) {
+        mixed.push(primary[pIdx++]);
       }
 
       // Weave the rest
