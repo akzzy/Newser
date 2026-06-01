@@ -94,16 +94,18 @@ export function calculateTitleSimilarity(title1, title2) {
 }
 
 // ── AI duplicate check ──
-async function askAIIfDuplicate(title1, title2) {
-  try {
-    const mistral = getMistralClient();
+export async function askAIIfDuplicate(title1, title2) {
+  const mistral = getMistralClient();
+  const maxRetries = 3;
 
-    const result = await mistral.chat.complete({
-      model: 'mistral-medium-3-5',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a news headline deduplication engine.
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await mistral.chat.complete({
+        model: 'mistral-medium-3-5',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a news headline deduplication engine.
 
 Given two headlines, decide if they cover the SAME underlying news event or story.
 
@@ -129,12 +131,25 @@ Respond with ONLY: {"same": true} or {"same": false}`
     const text = result.choices?.[0]?.message?.content?.trim();
     if (!text) return false;
 
+    // Strict 3 second delay to respect 0.38 RPS limit
+    await sleep(3000);
+
     const parsed = JSON.parse(text);
     return parsed.same === true;
   } catch (err) {
+    const isRateLimit = err.statusCode === 429 || err.message?.includes('429') || err.message?.includes('rate');
+    
+    if (isRateLimit && attempt < maxRetries) {
+      const waitTime = 10000 * attempt;
+      console.log(`[Deduplicator] Rate limited on "${title1.substring(0, 30)}...", retrying in ${waitTime/1000}s`);
+      await sleep(waitTime);
+      continue;
+    }
     console.error(`[Deduplicator] AI check failed: ${err.message}`);
     return false;
   }
+}
+return false;
 }
 
 // ── Sleep helper ──
@@ -175,8 +190,8 @@ export async function checkDuplicate(candidateTitle, knownTitles, logger = conso
       logger.info?.(`[Dedup] ✗ AI says different story`);
     }
 
-    // Small delay between AI calls
-    await sleep(200);
+    // Strict delay between AI calls to avoid 429s (if it didn't wait inside the function)
+    await sleep(3000);
   }
 
   return { isDuplicate: false, matchedTitle: null, method: 'none', score: 0 };

@@ -23,20 +23,21 @@ export async function sourceRoutes(fastify) {
    * List all unique AI categories from articles.
    */
   fastify.get('/sources/categories', async (request, reply) => {
-    // For performance, we can just return the hardcoded list of valid AI categories,
-    // or query distinct categories. Hardcoded is extremely fast and reliable.
-    const categories = [
-      "Technology",
-      "Science",
-      "Business",
-      "Culture",
-      "Entertainment",
-      "Politics",
-      "Health",
-      "Gaming",
-      "Auto",
-      "General"
-    ];
+    // Dynamically fetch unique categories that actually exist in recent articles
+    const { data, error } = await fastify.supabase
+      .from('articles')
+      .select('ai_category')
+      .not('ai_category', 'is', null)
+      .order('published_at', { ascending: false })
+      .limit(500);
+
+    if (error) {
+      fastify.log.error(`[Sources] Category fetch error: ${error.message}`);
+      return reply.status(500).send({ error: 'Failed to fetch categories' });
+    }
+
+    // Extract distinct categories
+    const categories = [...new Set(data.map(a => a.ai_category))].filter(Boolean);
     
     return { categories };
   });

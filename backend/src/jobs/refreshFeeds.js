@@ -180,6 +180,7 @@ async function refreshAllFeeds(fastify) {
 
   // Start with DB articles as the known-unique set
   const knownTitles = (recentDbArticles || []).map(a => a.title);
+  const dbTitleToId = new Map((recentDbArticles || []).map(a => [a.title, a.id]));
   const uniqueArticles = [];
   let skippedCount = 0;
 
@@ -210,7 +211,25 @@ async function refreshAllFeeds(fastify) {
         method: result.method,
         score: result.score
       });
+
+      // Increment importance_score of the original matched article
+      if (dbTitleToId.has(result.matchedTitle)) {
+        // It's already in the DB
+        const articleId = dbTitleToId.get(result.matchedTitle);
+        const { data: match } = await supabase.from('articles').select('importance_score').eq('id', articleId).single();
+        if (match) {
+          await supabase.from('articles').update({ importance_score: (match.importance_score || 1) + 1 }).eq('id', articleId);
+        }
+      } else {
+        // It's in the current batch waiting to be inserted
+        const inMemoryMatch = uniqueArticles.find(a => a.title === result.matchedTitle);
+        if (inMemoryMatch) {
+          inMemoryMatch.importance_score = (inMemoryMatch.importance_score || 1) + 1;
+        }
+      }
     } else {
+      // New article gets default importance of 1
+      article.importance_score = 1;
       uniqueArticles.push(article);
       knownTitles.push(article.title);
     }
@@ -262,7 +281,8 @@ async function refreshAllFeeds(fastify) {
         published_at: article.published_at,
         fetched_at: new Date().toISOString(),
         rewrite_status: 'pending',
-        is_scraped: article.is_scraped
+        is_scraped: article.is_scraped,
+        importance_score: article.importance_score || 1
       }, { onConflict: 'url' });
 
     if (insertErr) {
