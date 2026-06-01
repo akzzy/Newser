@@ -179,29 +179,22 @@ export async function articleRoutes(fastify) {
       
       const isMulti = preferredLower.length >= 3;
       const isDual = preferredLower.length === 2;
-      const frontLoadCount = isMulti ? 12 : (isDual ? 6 : 4);
       const primaryWeaveCount = isMulti ? 10 : (isDual ? 5 : 2);
       const generalChance = isMulti ? 0.1 : (isDual ? 0.25 : 0.5);
 
-      // Aggressively front-load primary articles so the user's exact interests
-      // appear immediately, strictly sorted by newest release time.
-      while (pIdx < frontLoadCount && pIdx < primary.length) {
-        mixed.push(primary[pIdx++]);
-      }
-
-      // Weave the rest based on preference density into a remainder pool
+      // Collect the exact ratio of primary, related, and general articles
       const remainder = [];
       while (pIdx < primary.length || rIdx < relatedPool.length) {
         
-        // Push primary articles
+        // Take primary articles according to the density
         for (let i = 0; i < primaryWeaveCount; i++) {
           if (pIdx < primary.length) remainder.push(primary[pIdx++]);
         }
         
-        // Push 1 related
+        // Take 1 related article
         if (rIdx < relatedPool.length) remainder.push(relatedPool[rIdx++]);
         
-        // Push 1 general sparingly based on probability
+        // Take 1 general sparingly based on probability
         if (gIdx < general.length && Math.random() < generalChance) remainder.push(general[gIdx++]);
       }
       
@@ -210,14 +203,11 @@ export async function articleRoutes(fastify) {
         remainder.push(general[gIdx++]);
       }
       
-      // Sort the remainder strictly chronologically so the timeline never jumps backward
+      // Sort the ENTIRE feed strictly chronologically so the timeline never jumps backward
       remainder.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
       
-      // Combine the front-loaded primary articles with the chronologically sorted remainder
-      mixed.push(...remainder);
-      
       // Apply pagination manually
-      finalData = mixed.slice(offset, offset + limitNum);
+      finalData = remainder.slice(offset, offset + limitNum);
     } else if (needsAlgorithmicSort) {
       // Fallback if they asked for 'foryou' but have no preferences
       finalData = finalData.slice(offset, offset + limitNum);
