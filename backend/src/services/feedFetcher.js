@@ -93,14 +93,11 @@ export async function fetchFeed(source, maxAgeHours = 24) {
 
       // Skip promotional articles from Wired
       if (source.slug === 'wired') {
-        const hasPromo = titleLower.includes('promo codes') || titleLower.includes('promocodes');
-        const hasDeals = titleLower.includes('deals');
-        const hasCoupon = titleLower.includes('coupon codes');
-        
-        // Check for month names (january, february, etc)
+        const isPromo = /(promo code|promocode|coupon|discount code)/.test(titleLower);
         const hasMonth = /(january|february|march|april|may|june|july|august|september|october|november|december)/.test(titleLower);
 
-        if ((hasPromo && hasDeals) || (hasCoupon && hasMonth)) {
+        // If it contains promo/coupon keywords AND a month name, it's definitely a monthly coupon post
+        if (isPromo && hasMonth) {
           console.log(`[FeedFetcher] Skipping promotional Wired article: "${item.title}"`);
           continue;
         }
