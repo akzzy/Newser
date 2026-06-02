@@ -103,8 +103,16 @@ export async function fetchFeed(source, maxAgeHours = 24) {
         }
       }
 
+      let cleanTitle = item.title.trim();
+      
+      // Strip source name from the end of the title (e.g. " - AP News" or " | TechCrunch")
+      // This prevents the deduplicator from getting falsely triggered by shared branding tokens
+      const escapedSourceName = source.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const suffixRegex = new RegExp(`\\s+[-|]\\s+${escapedSourceName}$`, 'i');
+      cleanTitle = cleanTitle.replace(suffixRegex, '');
+
       articles.push({
-        title: item.title.trim(),
+        title: cleanTitle,
         original_content: cleanContent.substring(0, 5000), // Cap at 5000 chars for AI input
         url: item.link || item.guid,
         image_url: extractImageUrl(item),
