@@ -119,6 +119,7 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
       set({ 
         hasCompletedOnboarding: true,
         showOnboardingPopup: false,
+        sharedLinkMode: null,
         sort: 'foryou',
         category: 'all',
         page: 1,

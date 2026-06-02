@@ -109,7 +109,19 @@ export default function Feed() {
     if (newIndex >= articles.length - 3 && hasMore && !isLoading) {
       const nextPage = page + 1;
       setPage(nextPage);
-      loadArticles(nextPage, category, source, sort);
+      
+      // If user arrived via shared link, continuation depends on onboarding status
+      if (sharedLinkMode) {
+        if (hasCompletedOnboarding) {
+          // Existing user: continue with personalized feed
+          loadArticles(nextPage, 'all', 'all', 'foryou');
+        } else {
+          // New user: continue with same category as shared article
+          loadArticles(nextPage, sharedLinkMode, 'all', 'latest');
+        }
+      } else {
+        loadArticles(nextPage, category, source, sort);
+      }
     }
   }, [articles.length, currentIndex, hasMore, isLoading, page, category, source, sort, setCurrentIndex, setPage, loadArticles, sharedLinkMode, hasCompletedOnboarding, showOnboardingPopup, setShowOnboardingPopup]);
 

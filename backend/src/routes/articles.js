@@ -125,6 +125,10 @@ export async function articleRoutes(fastify) {
       });
       finalData = finalData.slice(offset, offset + limitNum);
     } else if (sort === 'foryou' && preferredCategories.length > 0 && category === 'all') {
+      // ── Personalized "For You" Feed ──
+      // Pure chronological feed of the user's explicitly chosen categories.
+      // Related categories are only used as padding when primary content is insufficient.
+      
       const normalizeCat = (c) => {
         let n = c.toLowerCase().trim();
         if (n === 'startup') return 'startups';
@@ -135,79 +139,57 @@ export async function articleRoutes(fastify) {
       
       const preferredLower = preferredCategories.map(normalizeCat);
       
-      const SIMILARITY_MAP = {
-        'ai': ['software', 'hardware', 'startups'],
-        'mobile': ['hardware', 'software', 'technology'],
-        'startups': ['business', 'technology', 'finance'],
-        'gaming': ['entertainment', 'software', 'hardware'],
-        'science': ['technology', 'health', 'space'],
-        'security': ['software', 'internet', 'technology'],
-        'software': ['technology', 'ai', 'internet'],
-        'hardware': ['technology', 'mobile', 'gaming'],
-        'business': ['finance', 'startups', 'world'],
-        'internet': ['software', 'security', 'technology'],
-        'automotive': ['technology', 'hardware', 'business'],
-        'politics': ['world', 'business', 'finance'],
-        'world': ['politics', 'business', 'science'],
-        'sports': ['entertainment', 'world', 'culture'],
-        'entertainment': ['culture', 'gaming', 'world'],
-        'finance': ['business', 'startups', 'politics'],
-        'health': ['science', 'world', 'technology'],
-        'technology': ['software', 'hardware', 'ai']
-      };
-
-      let extendedPreferred = [...preferredLower];
-
-      // Always expand preferences to keep the feed rich and prevent boredom
-      preferredLower.forEach(cat => {
-        const related = SIMILARITY_MAP[cat] || [];
-        extendedPreferred.push(...related.slice(0, 2));
-      });
-      // Deduplicate
-      extendedPreferred = [...new Set(extendedPreferred)];
-
-      // Split pool
-      const primary = finalData.filter(a => preferredLower.includes(normalizeCat(a.ai_category || '')));
-      const relatedPool = finalData.filter(a => 
-        !preferredLower.includes(normalizeCat(a.ai_category || '')) && 
-        extendedPreferred.includes(normalizeCat(a.ai_category || ''))
+      // Step 1: Filter to ONLY the user's chosen categories, already sorted by published_at DESC from DB
+      const primaryArticles = finalData.filter(a => 
+        preferredLower.includes(normalizeCat(a.ai_category || ''))
       );
-      const general = finalData.filter(a => !extendedPreferred.includes(normalizeCat(a.ai_category || '')));
       
-      const mixed = [];
-      let pIdx = 0, rIdx = 0, gIdx = 0;
+      // Step 2: Check if we have enough primary content for this page
+      const neededForPage = offset + limitNum;
       
-      const isMulti = preferredLower.length >= 3;
-      const isDual = preferredLower.length === 2;
-      const primaryWeaveCount = isMulti ? 10 : (isDual ? 5 : 2);
-      const generalChance = isMulti ? 0.1 : (isDual ? 0.25 : 0.5);
-
-      // Collect the exact ratio of primary, related, and general articles
-      const remainder = [];
-      while (pIdx < primary.length || rIdx < relatedPool.length) {
+      if (primaryArticles.length >= neededForPage) {
+        // Plenty of content — pure chronological slice
+        finalData = primaryArticles.slice(offset, offset + limitNum);
+      } else {
+        // Not enough primary content — pad with related categories
+        const SIMILARITY_MAP = {
+          'ai': ['software', 'hardware', 'startups'],
+          'mobile': ['hardware', 'software', 'technology'],
+          'startups': ['business', 'technology', 'finance'],
+          'gaming': ['entertainment', 'software', 'hardware'],
+          'science': ['technology', 'health', 'space'],
+          'security': ['software', 'internet', 'technology'],
+          'software': ['technology', 'ai', 'internet'],
+          'hardware': ['technology', 'mobile', 'gaming'],
+          'business': ['finance', 'startups', 'world'],
+          'internet': ['software', 'security', 'technology'],
+          'automotive': ['technology', 'hardware', 'business'],
+          'politics': ['world', 'business', 'finance'],
+          'world': ['politics', 'business', 'science'],
+          'sports': ['entertainment', 'world', 'culture'],
+          'entertainment': ['culture', 'gaming', 'world'],
+          'finance': ['business', 'startups', 'politics'],
+          'health': ['science', 'world', 'technology'],
+          'technology': ['software', 'hardware', 'ai']
+        };
         
-        // Take primary articles according to the density
-        for (let i = 0; i < primaryWeaveCount; i++) {
-          if (pIdx < primary.length) remainder.push(primary[pIdx++]);
-        }
+        // Build list of related categories (not already in preferred)
+        let relatedCats = [];
+        preferredLower.forEach(cat => {
+          const related = SIMILARITY_MAP[cat] || [];
+          relatedCats.push(...related);
+        });
+        relatedCats = [...new Set(relatedCats)].filter(c => !preferredLower.includes(c));
         
-        // Take 1 related article
-        if (rIdx < relatedPool.length) remainder.push(relatedPool[rIdx++]);
+        // Get related articles, sorted chronologically
+        const relatedArticles = finalData.filter(a => 
+          relatedCats.includes(normalizeCat(a.ai_category || ''))
+        );
         
-        // Take 1 general sparingly based on probability
-        if (gIdx < general.length && Math.random() < generalChance) remainder.push(general[gIdx++]);
+        // Combine: all primary first (chronological), then related (chronological)
+        const combined = [...primaryArticles, ...relatedArticles];
+        finalData = combined.slice(offset, offset + limitNum);
       }
-      
-      // If we run out of primary and related, fill the rest with general
-      while (gIdx < general.length) {
-        remainder.push(general[gIdx++]);
-      }
-      
-      // Sort the ENTIRE feed strictly chronologically so the timeline never jumps backward
-      remainder.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
-      
-      // Apply pagination manually
-      finalData = remainder.slice(offset, offset + limitNum);
     } else if (needsAlgorithmicSort) {
       // Fallback if they asked for 'foryou' but have no preferences
       finalData = finalData.slice(offset, offset + limitNum);
