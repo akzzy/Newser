@@ -116,7 +116,7 @@ export const sources = [
   {
     name: 'ESPN',
     slug: 'espn',
-    feed_url: 'https://www.espn.com/espn/rss/news',
+    feed_url: 'https://news.google.com/rss/search?q=site:espn.com+when:1d&hl=en-US&gl=US&ceid=US:en',
     website_url: 'https://www.espn.com',
     logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://espn.com&size=128',
     color: '#CC0000',
@@ -170,7 +170,7 @@ export const sources = [
   {
     name: 'Autoblog',
     slug: 'autoblog',
-    feed_url: 'https://www.autoblog.com/rss.xml',
+    feed_url: 'https://news.google.com/rss/search?q=site:autoblog.com+when:1d&hl=en-US&gl=US&ceid=US:en',
     website_url: 'https://www.autoblog.com',
     logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://autoblog.com&size=128',
     color: '#005599',
@@ -181,7 +181,7 @@ export const sources = [
   {
     name: 'MotorTrend',
     slug: 'motortrend',
-    feed_url: 'https://www.motortrend.com/feed/',
+    feed_url: 'https://news.google.com/rss/search?q=site:motortrend.com+when:1d&hl=en-US&gl=US&ceid=US:en',
     website_url: 'https://www.motortrend.com',
     logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://motortrend.com&size=128',
     color: '#E81C24',
