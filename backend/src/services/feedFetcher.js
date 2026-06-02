@@ -83,6 +83,23 @@ export async function fetchFeed(source, maxAgeHours = 24) {
       // Skip items without meaningful content
       if (!item.title || cleanContent.length < 50) continue;
 
+      const titleLower = item.title.toLowerCase();
+
+      // Skip promotional articles from Wired
+      if (source.slug === 'wired') {
+        const hasPromo = titleLower.includes('promo codes') || titleLower.includes('promocodes');
+        const hasDeals = titleLower.includes('deals');
+        const hasCoupon = titleLower.includes('coupon codes');
+        
+        // Check for month names (january, february, etc)
+        const hasMonth = /(january|february|march|april|may|june|july|august|september|october|november|december)/.test(titleLower);
+
+        if ((hasPromo && hasDeals) || (hasCoupon && hasMonth)) {
+          console.log(`[FeedFetcher] Skipping promotional Wired article: "${item.title}"`);
+          continue;
+        }
+      }
+
       articles.push({
         title: item.title.trim(),
         original_content: cleanContent.substring(0, 5000), // Cap at 5000 chars for AI input
