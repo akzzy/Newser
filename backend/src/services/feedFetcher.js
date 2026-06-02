@@ -122,7 +122,9 @@ export async function fetchFeed(source, maxAgeHours = 24) {
       });
     }
 
-    return articles;
+    // Sort by most recent first and cap at 15 to prevent high-volume feeds from flooding the app
+    articles.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
+    return articles.slice(0, 15);
   } catch (error) {
     console.error(`[FeedFetcher] Error fetching ${source.name}:`, error.message);
     return [];
