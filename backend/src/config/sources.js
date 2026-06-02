@@ -125,6 +125,17 @@ export const sources = [
     is_active: true
   },
   {
+    name: 'ESPN',
+    slug: 'espn',
+    feed_url: 'https://www.espn.com/espn/rss/news',
+    website_url: 'https://www.espn.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://espn.com&size=128',
+    color: '#CC0000',
+    category: 'sports',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
     name: 'Autosport F1',
     slug: 'autosport',
     feed_url: 'https://www.autosport.com/rss/f1/news/',
@@ -168,12 +179,12 @@ export const sources = [
     is_active: true
   },
   {
-    name: 'Jalopnik',
-    slug: 'jalopnik',
-    feed_url: 'https://jalopnik.com/rss',
-    website_url: 'https://jalopnik.com',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://jalopnik.com&size=128',
-    color: '#222222',
+    name: 'Autoblog',
+    slug: 'autoblog',
+    feed_url: 'https://www.autoblog.com/.rss/feed/3d70fbb5-ef5e-44f3-a547-e60939496e82.xml',
+    website_url: 'https://www.autoblog.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://autoblog.com&size=128',
+    color: '#005599',
     category: 'automotive',
     fetch_method: 'rss',
     is_active: true
