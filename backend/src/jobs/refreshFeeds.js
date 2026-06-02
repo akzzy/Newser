@@ -257,7 +257,9 @@ async function refreshAllFeeds(fastify) {
           article.original_content = scraped.content;
           article.is_scraped = true; // Mark as successfully scraped
         }
-        if (!article.image_url && scraped.image_url) {
+        // Always prefer the scraped image (og:image) as it is usually high-res, 
+        // whereas RSS feeds often provide tiny pixelated thumbnails
+        if (scraped.image_url) {
           article.image_url = scraped.image_url;
         }
       } catch (err) {
