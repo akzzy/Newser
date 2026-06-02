@@ -179,6 +179,12 @@ export async function checkDuplicate(candidateTitle, knownTitles, logger = conso
     // Fast skip: no meaningful token overlap
     if (score < GRAY_ZONE_THRESHOLD) continue;
 
+    // Fast confirm: almost identical tokens, skip AI and assume duplicate
+    if (score >= DEFINITE_DUPLICATE_THRESHOLD) {
+      logger.info?.(`[Dedup] Fast confirm (score ${score.toFixed(2)} > ${DEFINITE_DUPLICATE_THRESHOLD}): "${candidateTitle}"`);
+      return { isDuplicate: true, matchedTitle: knownTitle, method: 'token', score };
+    }
+
     // Ask AI for the final verdict
     logger.info?.(`[Dedup] Checking (token score: ${score.toFixed(2)}): "${candidateTitle}" ↔ "${knownTitle}"`);
     const aiSaysSame = await askAIIfDuplicate(candidateTitle, knownTitle);
