@@ -38,7 +38,13 @@ function extractImageUrl(item) {
   if (item['content:encoded'] || item.content) {
     const html = item['content:encoded'] || item.content;
     const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-    if (imgMatch) return imgMatch[1];
+    if (imgMatch) {
+      const imgUrl = imgMatch[1];
+      // Reject generic Google News logos and icons
+      if (!imgUrl.includes('news.google.com') && !imgUrl.includes('gstatic.com') && !imgUrl.includes('news.google.co')) {
+        return imgUrl;
+      }
+    }
   }
 
   return null;

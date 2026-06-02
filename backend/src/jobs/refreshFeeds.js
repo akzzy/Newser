@@ -247,10 +247,10 @@ async function refreshAllFeeds(fastify) {
     return;
   }
 
-  // ── Phase 4: Scrape articles with insufficient content ──
+  // ── Phase 4: Scrape articles with insufficient content or missing images ──
   for (const article of uniqueArticles) {
     article.is_scraped = false; // Default
-    if (article.original_content.length < 200) {
+    if (article.original_content.length < 200 || !article.image_url) {
       try {
         const scraped = await scrapeArticle(article.url);
         if (scraped.content.length > article.original_content.length) {
