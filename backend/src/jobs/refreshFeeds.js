@@ -151,6 +151,17 @@ async function refreshAllFeeds(fastify) {
 
   logger.info(`[RefreshFeeds] Phase 1 done: ${allFetched.length} total articles fetched from ${activeSources.length} sources`);
 
+  // ── Phase 1.5: In-memory URL deduplication ──
+  // Prevents the exact same URL appearing multiple times in the same batch from spamming logs
+  const uniqueUrls = new Set();
+  const dedupedFetched = [];
+  for (const article of allFetched) {
+    if (article.url && uniqueUrls.has(article.url)) continue;
+    if (article.url) uniqueUrls.add(article.url);
+    dedupedFetched.push(article);
+  }
+  allFetched = dedupedFetched;
+
   // ── Phase 2: Exact URL deduplication against DB ──
   const urls = allFetched.map(a => a.url).filter(Boolean);
   const { data: existingArticles } = await supabase
@@ -211,6 +222,9 @@ async function refreshAllFeeds(fastify) {
         method: result.method,
         score: result.score
       });
+      
+      // Add to set to prevent logging this exact title again in the same batch
+      previouslyDroppedTitles.add(article.title);
 
       // Increment importance_score of the original matched article
       if (dbTitleToId.has(result.matchedTitle)) {

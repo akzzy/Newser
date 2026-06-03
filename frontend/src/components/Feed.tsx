@@ -240,14 +240,41 @@ export default function Feed() {
             {categories.map((cat) => {
               if (cat === 'all' && !hasCompletedOnboarding) return null;
               
+              if (cat === 'all') {
+                const items = [
+                  <button
+                    key="all"
+                    className={`${styles.categoryTab} ${category === 'all' && source === 'all' ? styles.categoryTabActive : ''}`}
+                    onClick={() => handleCategoryChange('all')}
+                    id="category-all"
+                  >
+                    For You
+                  </button>
+                ];
+                
+                if (source !== 'all') {
+                  items.push(
+                    <button
+                      key={`source-${source}`}
+                      className={`${styles.categoryTab} ${styles.categoryTabActive}`}
+                      onClick={() => {}}
+                      id={`source-${source}`}
+                    >
+                      {source.toUpperCase()}
+                    </button>
+                  );
+                }
+                return items;
+              }
+
               return (
                 <button
                   key={cat}
-                  className={`${styles.categoryTab} ${cat === category ? styles.categoryTabActive : ''}`}
+                  className={`${styles.categoryTab} ${cat === category && source === 'all' ? styles.categoryTabActive : ''}`}
                   onClick={() => handleCategoryChange(cat)}
                   id={`category-${cat}`}
                 >
-                  {cat === 'all' ? 'For You' : cat}
+                  {cat}
                 </button>
               );
             })}

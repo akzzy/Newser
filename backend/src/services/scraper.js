@@ -47,6 +47,26 @@ export async function scrapeArticle(url) {
       }
     }
 
+    // Fallback: Try to extract from SEO JSON-LD (solves ESPN and other React/SPA sites)
+    $('script[type="application/ld+json"]').each((i, el) => {
+      try {
+        const data = JSON.parse($(el).html());
+        
+        // Handle array of schemas or single schema object
+        const schemas = Array.isArray(data) ? data : [data];
+        
+        for (const schema of schemas) {
+          if (schema['@type'] === 'NewsArticle' || schema['@type'] === 'Article' || schema['@type'] === 'ReportageNewsArticle') {
+            if (schema.articleBody && schema.articleBody.length > content.length) {
+              content = schema.articleBody;
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    });
+
     // Extract hero image
     let imageUrl = null;
     const ogImage = $('meta[property="og:image"]').attr('content');

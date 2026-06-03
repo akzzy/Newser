@@ -60,7 +60,7 @@ export async function articleRoutes(fastify) {
       .eq('rewrite_status', 'completed')
       .not('title_hook', 'is', null);
 
-    if (sort === 'foryou' && preferredCategories.length > 0 && category === 'all') {
+    if (sort === 'foryou' && preferredCategories.length > 0 && category === 'all' && source === 'all') {
       // ── 60/40 BLENDED CHRONOLOGICAL FEED ──
       // User wants exactly 60% explicit interests and 40% related interests, sorted by time.
       const normalizeCat = (c) => {
