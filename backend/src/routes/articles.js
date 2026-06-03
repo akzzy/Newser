@@ -60,14 +60,9 @@ export async function articleRoutes(fastify) {
       .eq('rewrite_status', 'completed')
       .not('title_hook', 'is', null);
 
-    // 3. Apply sorting and filtering logic
-    if (sort === 'trending' || sort === 'top_today') {
-      // Pull up to 500 recent articles for deep algorithmic sorting
-      query = query
-        .order('published_at', { ascending: false })
-        .limit(500);
-    } else if (sort === 'foryou' && preferredCategories.length > 0 && category === 'all') {
-      // ── ADVANCED ALGORITHMIC 'FOR YOU' FEED ──
+    if (sort === 'foryou' && preferredCategories.length > 0 && category === 'all') {
+      // ── 60/40 BLENDED CHRONOLOGICAL FEED ──
+      // User wants exactly 60% explicit interests and 40% related interests, sorted by time.
       const normalizeCat = (c) => {
         let n = c.toLowerCase().trim();
         if (n === 'startup') return 'startups';
@@ -76,17 +71,134 @@ export async function articleRoutes(fastify) {
         return n;
       };
       
-      const allTargets = [...new Set(preferredCategories.map(normalizeCat))];
+      const SIMILARITY_MAP = {
+        'ai': ['software', 'hardware', 'startups'],
+        'mobile': ['hardware', 'software', 'technology'],
+        'startups': ['business', 'technology', 'finance'],
+        'gaming': ['entertainment', 'software', 'hardware'],
+        'science': ['technology', 'health', 'space'],
+        'security': ['software', 'internet', 'technology'],
+        'software': ['technology', 'ai', 'internet'],
+        'hardware': ['technology', 'mobile', 'gaming'],
+        'business': ['finance', 'startups', 'world'],
+        'internet': ['software', 'security', 'technology'],
+        'automotive': ['technology', 'hardware', 'business'],
+        'politics': ['world', 'business', 'finance'],
+        'world': ['politics', 'business', 'science'],
+        'sports': ['entertainment', 'world', 'culture'],
+        'entertainment': ['culture', 'gaming', 'world'],
+        'finance': ['business', 'startups', 'politics'],
+        'health': ['science', 'world', 'technology'],
+        'technology': ['software', 'hardware', 'ai']
+      };
 
-      // Build OR query: ai_category.ilike.%gaming%,ai_category.ilike.%automotive%,...
-      const orString = allTargets.map(cat => `ai_category.ilike.%${cat}%`).join(',');
+      const explicitTargets = [...new Set(preferredCategories.map(normalizeCat))];
+      let relatedTargets = [];
+      explicitTargets.forEach(cat => {
+        const related = SIMILARITY_MAP[cat] || [];
+        relatedTargets.push(...related);
+      });
+      // Filter out any related targets that the user already explicitly requested
+      relatedTargets = [...new Set(relatedTargets)].filter(cat => !explicitTargets.includes(cat));
+
+      // Calculate pagination ratios
+      const pageNum = Math.floor(offset / limitNum) + 1;
+      const explicitLimit = Math.ceil(limitNum * 0.6); // 12
+      const relatedLimit = limitNum - explicitLimit;   // 8
       
+      const explicitOffset = (pageNum - 1) * explicitLimit;
+      const relatedOffset = (pageNum - 1) * relatedLimit;
+
+      const baseQuery = fastify.supabase
+        .from('articles')
+        .select(`
+          id, title_hook, deep_dive_content, read_time, image_url, ai_category, ai_tags, published_at, url, importance_score, source_id,
+          sources!inner ( name, slug, logo_url, color )
+        `)
+        .eq('rewrite_status', 'completed')
+        .not('title_hook', 'is', null);
+
+      // Apply blocked items to base query
+      let queryExplicit = baseQuery;
+      let queryRelated = baseQuery;
+      
+      const { blocked_sources, blocked_categories } = request.query;
+      if (blocked_sources) {
+        const bSources = blocked_sources.split(',').map(s => s.trim()).filter(Boolean);
+        if (bSources.length > 0) {
+          const excludeStr = `(${bSources.map(s => `"${s}"`).join(',')})`;
+          queryExplicit = queryExplicit.not('sources.slug', 'in', excludeStr);
+          queryRelated = queryRelated.not('sources.slug', 'in', excludeStr);
+        }
+      }
+      if (blocked_categories) {
+        const bCats = blocked_categories.split(',').map(s => s.trim()).filter(Boolean);
+        if (bCats.length > 0) {
+          const excludeStr = `(${bCats.map(s => `"${s}"`).join(',')})`;
+          queryExplicit = queryExplicit.not('ai_category', 'in', excludeStr);
+          queryRelated = queryRelated.not('ai_category', 'in', excludeStr);
+        }
+      }
+
+      const explicitOr = explicitTargets.map(cat => `ai_category.ilike.%${cat}%`).join(',');
+      const relatedOr = relatedTargets.map(cat => `ai_category.ilike.%${cat}%`).join(',');
+
+      // Execute both queries in parallel
+      const [explicitResult, relatedResult] = await Promise.all([
+        queryExplicit.or(explicitOr).order('published_at', { ascending: false }).range(explicitOffset, explicitOffset + explicitLimit - 1),
+        relatedTargets.length > 0 
+          ? queryRelated.or(relatedOr).order('published_at', { ascending: false }).range(relatedOffset, relatedOffset + relatedLimit - 1)
+          : { data: [], error: null }
+      ]);
+
+      if (explicitResult.error) fastify.log.error(`[Articles] Explicit query error: ${explicitResult.error.message}`);
+      if (relatedResult.error) fastify.log.error(`[Articles] Related query error: ${relatedResult.error.message}`);
+
+      let combinedData = [...(explicitResult.data || []), ...(relatedResult.data || [])];
+      
+      // Sort combined strictly chronologically
+      combinedData.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+
+      // Because we use split logic, we just send a mock total count that guarantees pagination continues 
+      // as long as we got a full page of data back
+      const totalCount = offset + limitNum + (combinedData.length === limitNum ? 1 : 0);
+      
+      return reply.send({
+        articles: combinedData.map(article => ({
+          id: article.id,
+          title_hook: article.title_hook,
+          deep_dive_content: article.deep_dive_content,
+          read_time: article.read_time,
+          image_url: article.image_url,
+          ai_category: article.ai_category,
+          ai_tags: article.ai_tags,
+          published_at: article.published_at,
+          original_url: article.url,
+          source: article.sources ? {
+            name: article.sources.name,
+            slug: article.sources.slug,
+            logo_url: article.sources.logo_url,
+            color: article.sources.color
+          } : null
+        })),
+        user_interests: preferredCategories,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: totalCount,
+          has_more: combinedData.length > 0
+        }
+      });
+    }
+
+    // ── STANDARD SORTING FLOW ──
+    // 3. Apply sorting and filtering logic for non-foryou feeds
+    if (sort === 'trending' || sort === 'top_today') {
+      // Pull up to 500 recent articles for deep algorithmic sorting
       query = query
-        .or(orString)
         .order('published_at', { ascending: false })
-        .range(offset, offset + limitNum - 1);
+        .limit(500);
     } else {
-      // Standard direct database pagination (latest news)
       query = query
         .order('published_at', { ascending: false })
         .range(offset, offset + limitNum - 1);

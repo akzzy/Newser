@@ -33,7 +33,11 @@ export default function Feed() {
     setShowOnboardingPopup,
     initializeGuestId,
     initializePreferences,
-    isArticleBlocked
+    isArticleBlocked,
+    blockedCategories,
+    blockedSources,
+    boostedCategories,
+    boostedSources
   } = useArticleStore();
 
   // Initialize guest ID and preferences on first mount
@@ -68,7 +72,7 @@ export default function Feed() {
   const loadArticles = useCallback(async (pageNum: number, cat: string, src: string, sortOrder: string, replace = false) => {
     setLoading(true);
     try {
-      const data = await fetchArticles(pageNum, 20, cat, src, sortOrder, guestId, blockedCategories, blockedSources);
+      const data = await fetchArticles(pageNum, 20, cat, src, sortOrder, guestId, blockedCategories, blockedSources, boostedCategories, boostedSources);
       if (replace) {
         setArticles(data.articles, data.pagination.has_more, data.user_interests);
       } else {
@@ -79,7 +83,7 @@ export default function Feed() {
     } finally {
       setLoading(false);
     }
-  }, [setArticles, appendArticles, setLoading, guestId, blockedCategories, blockedSources]);
+  }, [setArticles, appendArticles, setLoading, guestId, blockedCategories, blockedSources, boostedCategories, boostedSources]);
 
   // Initial load
   useEffect(() => {

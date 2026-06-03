@@ -50,7 +50,9 @@ export async function fetchArticles(
   sort = 'foryou',
   guest_id: string | null = null,
   blockedCategories: string[] = [],
-  blockedSources: string[] = []
+  blockedSources: string[] = [],
+  boostedCategories: string[] = [],
+  boostedSources: string[] = []
 ): Promise<ArticlesResponse> {
   const params = new URLSearchParams({
     page: String(page),
@@ -66,6 +68,12 @@ export async function fetchArticles(
   }
   if (blockedSources.length > 0) {
     params.append('blocked_sources', blockedSources.join(','));
+  }
+  if (boostedCategories.length > 0) {
+    params.append('boosted_categories', boostedCategories.join(','));
+  }
+  if (boostedSources.length > 0) {
+    params.append('boosted_sources', boostedSources.join(','));
   }
 
   let retries = 2;
