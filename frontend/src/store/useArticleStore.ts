@@ -128,8 +128,8 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
   
   // When setting category, we reset source to 'all' to avoid conflicting filters
-  setCategory: (category) => set({ category, page: 1, articles: [], hasMore: true, currentIndex: 0, sort: 'foryou' }),
-  setSource: (source) => set({ source, page: 1, articles: [], hasMore: true, currentIndex: 0, category: 'all', sort: 'foryou' }),
+  setCategory: (category) => set({ category, page: 1, articles: [], hasMore: true, currentIndex: 0, sort: 'latest' }),
+  setSource: (source) => set({ source, page: 1, articles: [], hasMore: true, currentIndex: 0, category: 'all', sort: 'latest' }),
   setSort: (sort) => set({ sort, page: 1, articles: [], hasMore: true, currentIndex: 0, category: 'all', source: 'all' }),
   
   openDrawer: (article) => set({ drawerArticle: article, isDrawerOpen: true }),
