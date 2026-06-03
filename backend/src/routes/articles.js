@@ -109,36 +109,36 @@ export async function articleRoutes(fastify) {
       const explicitOffset = (pageNum - 1) * explicitLimit;
       const relatedOffset = (pageNum - 1) * relatedLimit;
 
-      const baseQuery = fastify.supabase
-        .from('articles')
-        .select(`
-          id, title_hook, deep_dive_content, read_time, image_url, ai_category, ai_tags, published_at, url, importance_score, source_id,
-          sources!inner ( name, slug, logo_url, color )
-        `)
-        .eq('rewrite_status', 'completed')
-        .not('title_hook', 'is', null);
+      const getBaseQuery = () => {
+        let q = fastify.supabase
+          .from('articles')
+          .select(`
+            id, title_hook, deep_dive_content, read_time, image_url, ai_category, ai_tags, published_at, url, importance_score, source_id,
+            sources!inner ( name, slug, logo_url, color )
+          `)
+          .eq('rewrite_status', 'completed')
+          .not('title_hook', 'is', null);
 
-      // Apply blocked items to base query
-      let queryExplicit = baseQuery;
-      let queryRelated = baseQuery;
-      
-      const { blocked_sources, blocked_categories } = request.query;
-      if (blocked_sources) {
-        const bSources = blocked_sources.split(',').map(s => s.trim()).filter(Boolean);
-        if (bSources.length > 0) {
-          const excludeStr = `(${bSources.map(s => `"${s}"`).join(',')})`;
-          queryExplicit = queryExplicit.not('sources.slug', 'in', excludeStr);
-          queryRelated = queryRelated.not('sources.slug', 'in', excludeStr);
+        const { blocked_sources, blocked_categories } = request.query;
+        if (blocked_sources) {
+          const bSources = blocked_sources.split(',').map(s => s.trim()).filter(Boolean);
+          if (bSources.length > 0) {
+            const excludeStr = `(${bSources.map(s => `"${s}"`).join(',')})`;
+            q = q.not('sources.slug', 'in', excludeStr);
+          }
         }
-      }
-      if (blocked_categories) {
-        const bCats = blocked_categories.split(',').map(s => s.trim()).filter(Boolean);
-        if (bCats.length > 0) {
-          const excludeStr = `(${bCats.map(s => `"${s}"`).join(',')})`;
-          queryExplicit = queryExplicit.not('ai_category', 'in', excludeStr);
-          queryRelated = queryRelated.not('ai_category', 'in', excludeStr);
+        if (blocked_categories) {
+          const bCats = blocked_categories.split(',').map(s => s.trim()).filter(Boolean);
+          if (bCats.length > 0) {
+            const excludeStr = `(${bCats.map(s => `"${s}"`).join(',')})`;
+            q = q.not('ai_category', 'in', excludeStr);
+          }
         }
-      }
+        return q;
+      };
+
+      let queryExplicit = getBaseQuery();
+      let queryRelated = getBaseQuery();
 
       const explicitOr = explicitTargets.map(cat => `ai_category.ilike.%${cat}%`).join(',');
       const relatedOr = relatedTargets.map(cat => `ai_category.ilike.%${cat}%`).join(',');
