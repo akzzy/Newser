@@ -128,7 +128,15 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
   
   // When setting category, we reset source to 'all' to avoid conflicting filters
-  setCategory: (category) => set({ category, page: 1, articles: [], hasMore: true, currentIndex: 0, sort: 'latest' }),
+  setCategory: (category) => set({ 
+    category, 
+    source: 'all',
+    page: 1, 
+    articles: [], 
+    hasMore: true, 
+    currentIndex: 0, 
+    sort: category === 'all' ? 'foryou' : 'latest' 
+  }),
   setSource: (source) => set({ source, page: 1, articles: [], hasMore: true, currentIndex: 0, category: 'all', sort: 'latest' }),
   setSort: (sort) => set({ sort, page: 1, articles: [], hasMore: true, currentIndex: 0, category: 'all', source: 'all' }),
   
