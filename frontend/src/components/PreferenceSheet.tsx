@@ -42,13 +42,13 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
     triggerHaptic('medium');
     blockItem(type, value);
     const label = type === 'source' ? value : value;
-    showToast(`🚫 You won't see "${label}" anymore`);
+    showToast(`You won't see "${label}" anymore`);
   }, [blockItem, showToast]);
 
   const handleBoostPill = useCallback((type: 'tag' | 'category' | 'source', value: string) => {
     triggerHaptic('medium');
     boostItem(type, value);
-    showToast(`❤️ You'll see more "${value}"`);
+    showToast(`You'll see more "${value}"`);
   }, [boostItem, showToast]);
 
   // Gather all blocked/boosted items for manage mode
@@ -64,18 +64,23 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
     ...boostedSources.map(v => ({ type: 'source' as const, value: v })),
   ];
 
-  const title = mode === 'block' ? 'Not Interested' : mode === 'boost' ? 'More Like This' : 'Manage Preferences';
+  const title = mode === 'block' ? 'Not Interested' : mode === 'boost' ? 'Interested' : 'Manage Preferences';
 
   return (
     <>
       {/* Overlay */}
       <div
         className={`${styles.overlay} ${isOpen ? styles.overlayVisible : ''}`}
-        onClick={onClose}
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        onTouchEnd={(e) => e.stopPropagation()}
       />
 
       {/* Sheet */}
-      <div className={`${styles.sheet} ${isOpen ? styles.sheetOpen : ''}`}>
+      <div
+        className={`${styles.sheet} ${isOpen ? styles.sheetOpen : ''}`}
+        onClick={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+      >
         <div className={styles.dragHandle}>
           <div className={styles.dragBar} />
         </div>
@@ -115,7 +120,7 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
                           }
                           disabled={isAlready}
                         >
-                          {isAlready ? '✓' : mode === 'block' ? '🚫' : '❤️'} {tag}
+                          {tag}
                         </button>
                       );
                     })}
@@ -146,7 +151,7 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
                           }
                           disabled={isAlready}
                         >
-                          {isAlready ? '✓' : mode === 'block' ? '🚫' : '❤️'} {article.ai_category}
+                          {article.ai_category}
                         </button>
                       );
                     })()}
@@ -177,7 +182,7 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
                           }
                           disabled={isAlready}
                         >
-                          {isAlready ? '✓' : mode === 'block' ? '🚫' : '❤️'} {article.source!.name}
+                          {article.source!.name}
                         </button>
                       );
                     })()}
@@ -193,7 +198,7 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
               {/* Blocked items */}
               <div className={styles.manageGroup}>
                 <div className={`${styles.manageGroupTitle} ${styles.manageGroupTitleBlock}`}>
-                  🚫 Blocked
+                  Blocked
                 </div>
                 {allBlocked.length === 0 ? (
                   <div className={styles.emptyState}>No blocked topics yet</div>
@@ -223,7 +228,7 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
               {/* Boosted items */}
               <div className={styles.manageGroup}>
                 <div className={`${styles.manageGroupTitle} ${styles.manageGroupTitleBoost}`}>
-                  ❤️ Boosted
+                  Boosted
                 </div>
                 {allBoosted.length === 0 ? (
                   <div className={styles.emptyState}>No boosted topics yet</div>

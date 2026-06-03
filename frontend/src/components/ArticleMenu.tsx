@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { MoreVertical } from 'lucide-react';
 import { triggerHaptic } from '@/lib/haptics';
 import type { Article } from '@/lib/api';
@@ -15,6 +16,7 @@ export default function ArticleMenu({ article }: ArticleMenuProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<SheetMode | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -24,7 +26,6 @@ export default function ArticleMenu({ article }: ArticleMenuProps) {
         setIsDropdownOpen(false);
       }
     };
-    // Use a small delay so the click that opened the menu doesn't immediately close it
     const timer = setTimeout(() => document.addEventListener('click', handleClickOutside), 10);
     return () => {
       clearTimeout(timer);
@@ -32,8 +33,30 @@ export default function ArticleMenu({ article }: ArticleMenuProps) {
     };
   }, [isDropdownOpen]);
 
+  // Track touch start to distinguish taps from swipes
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const dx = Math.abs(e.changedTouches[0].clientX - touchStartRef.current.x);
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartRef.current.y);
+    touchStartRef.current = null;
+
+    // If finger moved more than 30px, it was a swipe — ignore it
+    if (dx > 30 || dy > 30) return;
+
+    // It was a clean tap
+    e.stopPropagation();
+    triggerHaptic('light');
+    setIsDropdownOpen((prev) => !prev);
+  }, []);
+
   const handleMenuClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation(); // Don't trigger article card click
+    e.stopPropagation();
+    // On touch devices, handleTouchEnd already fires — avoid double-trigger
+    if ('ontouchstart' in window) return;
     triggerHaptic('light');
     setIsDropdownOpen((prev) => !prev);
   }, []);
@@ -54,33 +77,36 @@ export default function ArticleMenu({ article }: ArticleMenuProps) {
         <button
           className={styles.menuButton}
           onClick={handleMenuClick}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           aria-label="Article options"
         >
           <MoreVertical size={18} />
         </button>
 
         <div className={`${styles.dropdown} ${isDropdownOpen ? styles.dropdownOpen : ''}`}>
-          <button className={styles.menuItem} onClick={() => handleOption('block')}>
-            <span className={`${styles.menuItemIcon} ${styles.menuItemBlock}`}>🚫</span>
+          <button className={styles.menuItem} onClick={(e) => { e.stopPropagation(); handleOption('block'); }}>
             Not Interested
           </button>
-          <button className={styles.menuItem} onClick={() => handleOption('boost')}>
-            <span className={`${styles.menuItemIcon} ${styles.menuItemBoost}`}>❤️</span>
-            More Like This
+          <button className={styles.menuItem} onClick={(e) => { e.stopPropagation(); handleOption('boost'); }}>
+            Interested
           </button>
-          <button className={styles.menuItem} onClick={() => handleOption('manage')}>
-            <span className={`${styles.menuItemIcon} ${styles.menuItemManage}`}>⚙️</span>
+          <button className={styles.menuItem} onClick={(e) => { e.stopPropagation(); handleOption('manage'); }}>
             Manage Preferences
           </button>
         </div>
       </div>
 
-      <PreferenceSheet
-        isOpen={sheetMode !== null}
-        mode={sheetMode || 'block'}
-        article={article}
-        onClose={handleSheetClose}
-      />
+      {/* Render PreferenceSheet via Portal so it's outside the scroll container */}
+      {typeof document !== 'undefined' && sheetMode !== null && createPortal(
+        <PreferenceSheet
+          isOpen={sheetMode !== null}
+          mode={sheetMode || 'block'}
+          article={article}
+          onClose={handleSheetClose}
+        />,
+        document.body
+      )}
     </>
   );
 }
