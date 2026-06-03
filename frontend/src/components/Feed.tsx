@@ -70,9 +70,9 @@ export default function Feed() {
     try {
       const data = await fetchArticles(pageNum, 20, cat, src, sortOrder, guestId);
       if (replace) {
-        setArticles(data.articles, data.pagination.has_more);
+        setArticles(data.articles, data.pagination.has_more, data.user_interests);
       } else {
-        appendArticles(data.articles, data.pagination.has_more);
+        appendArticles(data.articles, data.pagination.has_more, data.user_interests);
       }
     } catch (err) {
       console.error('Failed to load articles:', err);

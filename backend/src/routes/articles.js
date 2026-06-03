@@ -60,18 +60,62 @@ export async function articleRoutes(fastify) {
       .eq('rewrite_status', 'completed')
       .not('title_hook', 'is', null);
 
-    // Apply sorting logic (Fetch larger pool if we need to algorithmic sort)
-    const needsAlgorithmicSort = sort === 'trending' || sort === 'top_today' || (sort === 'foryou' && preferredCategories.length > 0);
-    
-    if (needsAlgorithmicSort) {
+    // 3. Apply sorting and filtering logic
+    if (sort === 'trending' || sort === 'top_today') {
       // Pull up to 500 recent articles for deep algorithmic sorting
-      // This ensures we find enough niche category articles (like Automotive) 
-      // even if they aren't the absolute most recent.
       query = query
         .order('published_at', { ascending: false })
         .limit(500);
+    } else if (sort === 'foryou' && preferredCategories.length > 0 && category === 'all') {
+      // Direct DB query for exact + related interests, perfectly chronological
+      const normalizeCat = (c) => {
+        let n = c.toLowerCase().trim();
+        if (n === 'startup') return 'startups';
+        if (n === 'auto') return 'automotive';
+        if (n === 'tech') return 'technology';
+        return n;
+      };
+      
+      const SIMILARITY_MAP = {
+        'ai': ['software', 'hardware', 'startups'],
+        'mobile': ['hardware', 'software', 'technology'],
+        'startups': ['business', 'technology', 'finance'],
+        'gaming': ['entertainment', 'software', 'hardware'],
+        'science': ['technology', 'health', 'space'],
+        'security': ['software', 'internet', 'technology'],
+        'software': ['technology', 'ai', 'internet'],
+        'hardware': ['technology', 'mobile', 'gaming'],
+        'business': ['finance', 'startups', 'world'],
+        'internet': ['software', 'security', 'technology'],
+        'automotive': ['technology', 'hardware', 'business'],
+        'politics': ['world', 'business', 'finance'],
+        'world': ['politics', 'business', 'science'],
+        'sports': ['entertainment', 'world', 'culture'],
+        'entertainment': ['culture', 'gaming', 'world'],
+        'finance': ['business', 'startups', 'politics'],
+        'health': ['science', 'world', 'technology'],
+        'technology': ['software', 'hardware', 'ai']
+      };
+
+      const preferredLower = preferredCategories.map(normalizeCat);
+      let allTargets = [...preferredLower];
+      
+      preferredLower.forEach(cat => {
+        const related = SIMILARITY_MAP[cat] || [];
+        allTargets.push(...related);
+      });
+      
+      allTargets = [...new Set(allTargets)]; // Deduplicate
+
+      // Build OR query: ai_category.ilike.%gaming%,ai_category.ilike.%automotive%,...
+      const orString = allTargets.map(cat => `ai_category.ilike.%${cat}%`).join(',');
+      
+      query = query
+        .or(orString)
+        .order('published_at', { ascending: false })
+        .range(offset, offset + limitNum - 1);
     } else {
-      // Standard direct database pagination
+      // Standard direct database pagination (latest news)
       query = query
         .order('published_at', { ascending: false })
         .range(offset, offset + limitNum - 1);
@@ -124,76 +168,8 @@ export async function articleRoutes(fastify) {
         return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
       });
       finalData = finalData.slice(offset, offset + limitNum);
-    } else if (sort === 'foryou' && preferredCategories.length > 0 && category === 'all') {
-      // ── Personalized "For You" Feed ──
-      // Pure chronological feed of the user's explicitly chosen categories.
-      // Related categories are only used as padding when primary content is insufficient.
-      
-      const normalizeCat = (c) => {
-        let n = c.toLowerCase().trim();
-        if (n === 'startup') return 'startups';
-        if (n === 'auto') return 'automotive';
-        if (n === 'tech') return 'technology';
-        return n;
-      };
-      
-      const preferredLower = preferredCategories.map(normalizeCat);
-      
-      // Step 1: Filter to ONLY the user's chosen categories, already sorted by published_at DESC from DB
-      const primaryArticles = finalData.filter(a => 
-        preferredLower.includes(normalizeCat(a.ai_category || ''))
-      );
-      
-      // Step 2: Check if we have enough primary content for this page
-      const neededForPage = offset + limitNum;
-      
-      if (primaryArticles.length >= neededForPage) {
-        // Plenty of content — pure chronological slice
-        finalData = primaryArticles.slice(offset, offset + limitNum);
-      } else {
-        // Not enough primary content — pad with related categories
-        const SIMILARITY_MAP = {
-          'ai': ['software', 'hardware', 'startups'],
-          'mobile': ['hardware', 'software', 'technology'],
-          'startups': ['business', 'technology', 'finance'],
-          'gaming': ['entertainment', 'software', 'hardware'],
-          'science': ['technology', 'health', 'space'],
-          'security': ['software', 'internet', 'technology'],
-          'software': ['technology', 'ai', 'internet'],
-          'hardware': ['technology', 'mobile', 'gaming'],
-          'business': ['finance', 'startups', 'world'],
-          'internet': ['software', 'security', 'technology'],
-          'automotive': ['technology', 'hardware', 'business'],
-          'politics': ['world', 'business', 'finance'],
-          'world': ['politics', 'business', 'science'],
-          'sports': ['entertainment', 'world', 'culture'],
-          'entertainment': ['culture', 'gaming', 'world'],
-          'finance': ['business', 'startups', 'politics'],
-          'health': ['science', 'world', 'technology'],
-          'technology': ['software', 'hardware', 'ai']
-        };
-        
-        // Build list of related categories (not already in preferred)
-        let relatedCats = [];
-        preferredLower.forEach(cat => {
-          const related = SIMILARITY_MAP[cat] || [];
-          relatedCats.push(...related);
-        });
-        relatedCats = [...new Set(relatedCats)].filter(c => !preferredLower.includes(c));
-        
-        // Get related articles, sorted chronologically
-        const relatedArticles = finalData.filter(a => 
-          relatedCats.includes(normalizeCat(a.ai_category || ''))
-        );
-        
-        // Combine: all primary first (chronological), then related (chronological)
-        const combined = [...primaryArticles, ...relatedArticles];
-        finalData = combined.slice(offset, offset + limitNum);
-      }
-    } else if (needsAlgorithmicSort) {
-      // Fallback if they asked for 'foryou' but have no preferences
-      finalData = finalData.slice(offset, offset + limitNum);
     }
+    // (For You is already handled fully by the DB query now)
 
     // Reshape the response
     const articles = finalData.map(article => ({
@@ -216,6 +192,7 @@ export async function articleRoutes(fastify) {
 
     return {
       articles,
+      user_interests: preferredCategories,
       pagination: {
         page: pageNum,
         limit: limitNum,

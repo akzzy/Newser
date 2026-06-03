@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Plus, ChevronLeft } from 'lucide-react';
 import { useArticleStore } from '@/store/useArticleStore';
 import { triggerHaptic } from '@/lib/haptics';
 import type { Article } from '@/lib/api';
@@ -20,10 +20,20 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
   const {
     blockItem, boostItem, unblockItem, unboostItem,
     blockedTags, blockedCategories, blockedSources,
-    boostedTags, boostedCategories, boostedSources
+    boostedTags, boostedCategories, boostedSources,
+    userInterests
   } = useArticleStore();
 
   const [toast, setToast] = useState<string | null>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [selectedCatForChoice, setSelectedCatForChoice] = useState<string | null>(null);
+
+  const ALL_CATEGORIES = [
+    'Technology', 'Sports', 'Gaming', 'Science', 'AI', 'Business', 
+    'Entertainment', 'Finance', 'Politics', 'World', 'Health', 
+    'Internet', 'Security', 'Software', 'Hardware', 'Startups', 
+    'Automotive', 'Mobile'
+  ];
 
   // Show a temporary toast notification
   const showToast = useCallback((message: string) => {
@@ -64,14 +74,14 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
     ...boostedSources.map(v => ({ type: 'source' as const, value: v })),
   ];
 
-  const title = mode === 'block' ? 'Not Interested' : mode === 'boost' ? 'Interested' : 'Manage Preferences';
+  const title = mode === 'block' ? 'Not Interested' : mode === 'boost' ? 'Interested' : isPickerOpen ? '' : 'Manage Preferences';
 
   return (
     <>
       {/* Overlay */}
       <div
         className={`${styles.overlay} ${isOpen ? styles.overlayVisible : ''}`}
-        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        onClick={(e) => { e.stopPropagation(); onClose(); setIsPickerOpen(false); setSelectedCatForChoice(null); }}
         onTouchEnd={(e) => e.stopPropagation()}
       />
 
@@ -86,10 +96,21 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
         </div>
 
         <div className={styles.sheetHeader}>
-          <span className={styles.sheetTitle}>{title}</span>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
-            <X size={16} />
-          </button>
+          {mode === 'manage' && isPickerOpen ? (
+            <div className={styles.pickerHeader}>
+              <button className={styles.backBtn} onClick={() => setIsPickerOpen(false)}>
+                <ChevronLeft size={20} />
+              </button>
+              <span className={styles.pickerTitle}>Add Topic</span>
+            </div>
+          ) : (
+            <>
+              <span className={styles.sheetTitle}>{title}</span>
+              <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
+                <X size={16} />
+              </button>
+            </>
+          )}
         </div>
 
         <div className={styles.sheetContent}>
@@ -193,37 +214,24 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
           )}
 
           {/* ── Manage mode ── */}
-          {mode === 'manage' && (
+          {mode === 'manage' && !isPickerOpen && (
             <>
-              {/* Blocked items */}
-              <div className={styles.manageGroup}>
-                <div className={`${styles.manageGroupTitle} ${styles.manageGroupTitleBlock}`}>
-                  Blocked
-                </div>
-                {allBlocked.length === 0 ? (
-                  <div className={styles.emptyState}>No blocked topics yet</div>
-                ) : (
-                  allBlocked.map(({ type, value }) => (
-                    <div key={`block-${type}-${value}`} className={styles.manageItem}>
+              {/* My Interests (From Onboarding) */}
+              {userInterests && userInterests.length > 0 && (
+                <div className={styles.manageGroup}>
+                  <div className={`${styles.manageGroupTitle} ${styles.manageGroupTitleInterests}`}>
+                    🎯 My Interests
+                  </div>
+                  {userInterests.map((interest) => (
+                    <div key={`interest-${interest}`} className={styles.manageItem}>
                       <div>
-                        <span className={styles.manageItemLabel}>{value}</span>
-                        <span className={styles.manageItemType}>{type}</span>
+                        <span className={styles.manageItemLabel}>{interest}</span>
                       </div>
-                      <button
-                        className={styles.removeBtn}
-                        onClick={() => {
-                          triggerHaptic('light');
-                          unblockItem(type, value);
-                          showToast(`Unblocked "${value}"`);
-                        }}
-                        aria-label={`Unblock ${value}`}
-                      >
-                        <X size={14} />
-                      </button>
+                      {/* No remove button for core interests yet, as it requires API update */}
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
 
               {/* Boosted items */}
               <div className={styles.manageGroup}>
@@ -254,8 +262,94 @@ export default function PreferenceSheet({ isOpen, mode, article, onClose }: Pref
                   ))
                 )}
               </div>
+
+              {/* Blocked items */}
+              <div className={styles.manageGroup}>
+                <div className={`${styles.manageGroupTitle} ${styles.manageGroupTitleBlock}`}>
+                  Blocked
+                </div>
+                {allBlocked.length === 0 ? (
+                  <div className={styles.emptyState}>No blocked topics yet</div>
+                ) : (
+                  allBlocked.map(({ type, value }) => (
+                    <div key={`block-${type}-${value}`} className={styles.manageItem}>
+                      <div>
+                        <span className={styles.manageItemLabel}>{value}</span>
+                        <span className={styles.manageItemType}>{type}</span>
+                      </div>
+                      <button
+                        className={styles.removeBtn}
+                        onClick={() => {
+                          triggerHaptic('light');
+                          unblockItem(type, value);
+                          showToast(`Unblocked "${value}"`);
+                        }}
+                        aria-label={`Unblock ${value}`}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <button className={styles.addCategoryBtn} onClick={() => setIsPickerOpen(true)}>
+                <Plus size={16} /> Add Topic
+              </button>
             </>
           )}
+
+          {/* ── Add Category Picker ── */}
+          {mode === 'manage' && isPickerOpen && (
+            <div className={styles.pickerGrid}>
+              {ALL_CATEGORIES.map(cat => (
+                <div 
+                  key={cat} 
+                  className={styles.pickerPill}
+                  onClick={() => setSelectedCatForChoice(cat)}
+                >
+                  {cat}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Modal for Boost/Block choice inside the picker */}
+          <div className={`${styles.choiceModalOverlay} ${selectedCatForChoice ? styles.choiceModalVisible : ''}`}>
+            <div className={styles.choiceModal}>
+              <div className={styles.choiceTitle}>{selectedCatForChoice}</div>
+              <button 
+                className={`${styles.choiceBtn} ${styles.choiceBtnBoost}`}
+                onClick={() => {
+                  triggerHaptic('medium');
+                  boostItem('category', selectedCatForChoice!);
+                  showToast(`Boosted "${selectedCatForChoice}"`);
+                  setSelectedCatForChoice(null);
+                  setIsPickerOpen(false);
+                }}
+              >
+                Boost this topic
+              </button>
+              <button 
+                className={`${styles.choiceBtn} ${styles.choiceBtnBlock}`}
+                onClick={() => {
+                  triggerHaptic('medium');
+                  blockItem('category', selectedCatForChoice!);
+                  showToast(`Blocked "${selectedCatForChoice}"`);
+                  setSelectedCatForChoice(null);
+                  setIsPickerOpen(false);
+                }}
+              >
+                Block this topic
+              </button>
+              <button 
+                className={`${styles.choiceBtn} ${styles.choiceBtnCancel}`}
+                onClick={() => setSelectedCatForChoice(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

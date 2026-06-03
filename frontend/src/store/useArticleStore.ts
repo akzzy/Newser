@@ -22,8 +22,8 @@ interface ArticleStore {
   sharedLinkMode: string | null;
 
   initializeGuestId: () => void;
-  setArticles: (articles: Article[], hasMore: boolean) => void;
-  appendArticles: (articles: Article[], hasMore: boolean) => void;
+  setArticles: (articles: Article[], hasMore: boolean, userInterests?: string[]) => void;
+  appendArticles: (articles: Article[], hasMore: boolean, userInterests?: string[]) => void;
   setCurrentIndex: (index: number) => void;
   setPage: (page: number) => void;
   setLoading: (loading: boolean) => void;
@@ -40,7 +40,8 @@ interface ArticleStore {
   likedArticles: Record<string, boolean>;
   toggleLike: (id: string) => void;
 
-  // Preferences (block / boost)
+  // Preferences (block / boost / backend interests)
+  userInterests: string[];
   blockedTags: string[];
   blockedCategories: string[];
   blockedSources: string[];
@@ -87,6 +88,7 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
   showOnboardingPopup: false,
   sharedLinkMode: null,
   likedArticles: {},
+  userInterests: [],
 
   initializeGuestId: () => {
     if (typeof window === 'undefined') return;
@@ -105,13 +107,20 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
     });
   },
 
-  setArticles: (articles, hasMore) =>
-    set({ articles, hasMore, page: 1, currentIndex: 0 }),
+  setArticles: (articles, hasMore, userInterests) =>
+    set((state) => ({ 
+      articles, 
+      hasMore, 
+      page: 1, 
+      currentIndex: 0,
+      userInterests: userInterests || state.userInterests 
+    })),
 
-  appendArticles: (newArticles, hasMore) =>
+  appendArticles: (newArticles, hasMore, userInterests) =>
     set((state) => ({
       articles: [...state.articles, ...newArticles],
-      hasMore
+      hasMore,
+      userInterests: userInterests || state.userInterests
     })),
 
   setCurrentIndex: (index) => set({ currentIndex: index }),

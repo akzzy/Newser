@@ -190,6 +190,10 @@
   color: #5edc78;
 }
 
+.manageGroupTitleInterests {
+  color: #5ac8fa;
+}
+
 .manageItem {
   display: flex;
   align-items: center;
@@ -242,6 +246,171 @@
   color: rgba(255, 255, 255, 0.3);
   font-family: var(--font-secondary);
   font-size: 14px;
+}
+
+/* ---- Add Category UI ---- */
+.addCategoryBtn {
+  width: 100%;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: var(--font-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.addCategoryBtn:active {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(0.98);
+}
+
+.pickerHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.backBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.2s ease;
+}
+
+.backBtn:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.pickerTitle {
+  font-family: var(--font-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-white);
+}
+
+.pickerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+}
+
+.pickerPill {
+  padding: 12px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: var(--font-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pickerPill:active {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(0.95);
+}
+
+/* Modal for Boost/Block choice */
+.choiceModalOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.choiceModalVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.choiceModal {
+  background: #242424;
+  padding: 24px;
+  border-radius: 16px;
+  width: 80%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transform: scale(0.9);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.choiceModalVisible .choiceModal {
+  transform: scale(1);
+}
+
+.choiceTitle {
+  font-family: var(--font-primary);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-white);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.choiceBtn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  font-family: var(--font-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.choiceBtnBoost {
+  background: rgba(52, 199, 89, 0.15);
+  color: #5edc78;
+}
+
+.choiceBtnBoost:active {
+  background: rgba(52, 199, 89, 0.25);
+}
+
+.choiceBtnBlock {
+  background: rgba(255, 59, 48, 0.15);
+  color: #ff6b6b;
+}
+
+.choiceBtnBlock:active {
+  background: rgba(255, 59, 48, 0.25);
+}
+
+.choiceBtnCancel {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 4px;
 }
 
 /* ---- Toast ---- */

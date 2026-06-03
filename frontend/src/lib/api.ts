@@ -30,6 +30,7 @@ export interface Article {
 
 export interface ArticlesResponse {
   articles: Article[];
+  user_interests?: string[];
   pagination: {
     page: number;
     limit: number;
