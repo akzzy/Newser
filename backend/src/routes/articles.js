@@ -67,7 +67,7 @@ export async function articleRoutes(fastify) {
         .order('published_at', { ascending: false })
         .limit(500);
     } else if (sort === 'foryou' && preferredCategories.length > 0 && category === 'all') {
-      // Direct DB query for exact + related interests, perfectly chronological
+      // ── ADVANCED ALGORITHMIC 'FOR YOU' FEED ──
       const normalizeCat = (c) => {
         let n = c.toLowerCase().trim();
         if (n === 'startup') return 'startups';
