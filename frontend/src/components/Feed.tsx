@@ -113,7 +113,7 @@ export default function Feed() {
     }
 
     // Preload more when near end
-    if (newIndex >= articles.length - 3 && hasMore && !isLoading) {
+    if (newIndex >= filteredArticles.length - 3 && hasMore && !isLoading) {
       const nextPage = page + 1;
       setPage(nextPage);
       
@@ -130,7 +130,7 @@ export default function Feed() {
         loadArticles(nextPage, category, source, sort);
       }
     }
-  }, [articles.length, currentIndex, hasMore, isLoading, page, category, source, sort, setCurrentIndex, setPage, loadArticles, sharedLinkMode, hasCompletedOnboarding, showOnboardingPopup, setShowOnboardingPopup]);
+  }, [filteredArticles.length, currentIndex, hasMore, isLoading, page, category, source, sort, setCurrentIndex, setPage, loadArticles, sharedLinkMode, hasCompletedOnboarding, showOnboardingPopup, setShowOnboardingPopup]);
 
   // Category change handler
   const handleCategoryChange = useCallback((cat: string) => {
@@ -250,9 +250,9 @@ export default function Feed() {
       )}
 
       {/* Scroll position dots */}
-      {articles.length > 1 && (
+      {filteredArticles.length > 1 && (
         <div className={styles.scrollIndicator}>
-          {articles.slice(0, Math.min(articles.length, 8)).map((_, i) => (
+          {filteredArticles.slice(0, Math.min(filteredArticles.length, 8)).map((_, i) => (
             <div
               key={i}
               className={`${styles.scrollDot} ${i === currentIndex ? styles.scrollDotActive : ''}`}
@@ -307,7 +307,7 @@ export default function Feed() {
           </div>
         ) : (
           // Article cards (filtered by preferences)
-          articles.filter((a) => !isArticleBlocked(a)).map((article) => (
+          filteredArticles.map((article) => (
             <ArticleCard key={article.id} article={article} />
           ))
         )}
