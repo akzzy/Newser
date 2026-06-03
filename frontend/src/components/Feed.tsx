@@ -68,7 +68,7 @@ export default function Feed() {
   const loadArticles = useCallback(async (pageNum: number, cat: string, src: string, sortOrder: string, replace = false) => {
     setLoading(true);
     try {
-      const data = await fetchArticles(pageNum, 20, cat, src, sortOrder, guestId);
+      const data = await fetchArticles(pageNum, 20, cat, src, sortOrder, guestId, blockedCategories, blockedSources);
       if (replace) {
         setArticles(data.articles, data.pagination.has_more, data.user_interests);
       } else {
@@ -79,7 +79,7 @@ export default function Feed() {
     } finally {
       setLoading(false);
     }
-  }, [setArticles, appendArticles, setLoading, guestId]);
+  }, [setArticles, appendArticles, setLoading, guestId, blockedCategories, blockedSources]);
 
   // Initial load
   useEffect(() => {

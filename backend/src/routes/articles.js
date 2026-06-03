@@ -76,36 +76,7 @@ export async function articleRoutes(fastify) {
         return n;
       };
       
-      const SIMILARITY_MAP = {
-        'ai': ['software', 'hardware', 'startups'],
-        'mobile': ['hardware', 'software', 'technology'],
-        'startups': ['business', 'technology', 'finance'],
-        'gaming': ['entertainment', 'software', 'hardware'],
-        'science': ['technology', 'health', 'space'],
-        'security': ['software', 'internet', 'technology'],
-        'software': ['technology', 'ai', 'internet'],
-        'hardware': ['technology', 'mobile', 'gaming'],
-        'business': ['finance', 'startups', 'world'],
-        'internet': ['software', 'security', 'technology'],
-        'automotive': ['technology', 'hardware', 'business'],
-        'politics': ['world', 'business', 'finance'],
-        'world': ['politics', 'business', 'science'],
-        'sports': ['entertainment', 'world', 'culture'],
-        'entertainment': ['culture', 'gaming', 'world'],
-        'finance': ['business', 'startups', 'politics'],
-        'health': ['science', 'world', 'technology'],
-        'technology': ['software', 'hardware', 'ai']
-      };
-
-      const preferredLower = preferredCategories.map(normalizeCat);
-      let allTargets = [...preferredLower];
-      
-      preferredLower.forEach(cat => {
-        const related = SIMILARITY_MAP[cat] || [];
-        allTargets.push(...related);
-      });
-      
-      allTargets = [...new Set(allTargets)]; // Deduplicate
+      const allTargets = [...new Set(preferredCategories.map(normalizeCat))];
 
       // Build OR query: ai_category.ilike.%gaming%,ai_category.ilike.%automotive%,...
       const orString = allTargets.map(cat => `ai_category.ilike.%${cat}%`).join(',');
@@ -129,6 +100,24 @@ export async function articleRoutes(fastify) {
     // Filter by source slug
     if (source !== 'all') {
       query = query.eq('sources.slug', source);
+    }
+
+    // Explicitly exclude blocked sources and categories at DB level
+    // so pagination doesn't shrink on the frontend
+    const { blocked_sources, blocked_categories } = request.query;
+    if (blocked_sources) {
+      const bSources = blocked_sources.split(',').map(s => s.trim()).filter(Boolean);
+      if (bSources.length > 0) {
+        query = query.not('sources.slug', 'in', `(${bSources.map(s => `"${s}"`).join(',')})`);
+      }
+    }
+    if (blocked_categories) {
+      const bCats = blocked_categories.split(',').map(s => s.trim()).filter(Boolean);
+      if (bCats.length > 0) {
+        // Since ai_category can be loosely matched, we use standard not-in for exact matches
+        // Supabase 'in' operator syntax for arrays: .not('ai_category', 'in', '("Tech","Auto")')
+        query = query.not('ai_category', 'in', `(${bCats.map(s => `"${s}"`).join(',')})`);
+      }
     }
 
     const { data, error, count } = await query;
