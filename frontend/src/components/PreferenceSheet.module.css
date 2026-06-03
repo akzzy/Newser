@@ -1,0 +1,271 @@
+/* ================================================
+   PreferenceSheet — Bottom sheet for block/boost/manage
+   ================================================ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 300;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.overlayVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-height: 70dvh;
+  z-index: 301;
+  background: #1a1a1a;
+  border-radius: 20px 20px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sheetOpen {
+  transform: translateY(0);
+}
+
+/* ---- Drag handle ---- */
+.dragHandle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.dragBar {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ---- Header ---- */
+.sheetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px 16px;
+  flex-shrink: 0;
+}
+
+.sheetTitle {
+  font-family: var(--font-primary);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-white);
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  border: none;
+}
+
+.closeBtn:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ---- Content ---- */
+.sheetContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px 24px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---- Section ---- */
+.section {
+  margin-bottom: 20px;
+}
+
+.sectionLabel {
+  font-family: var(--font-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 10px;
+}
+
+/* ---- Pill grid ---- */
+.pillGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-family: var(--font-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pill:active {
+  transform: scale(0.95);
+}
+
+/* Block mode pill */
+.pillBlock {
+  border-color: rgba(255, 59, 48, 0.3);
+  color: #ff6b6b;
+}
+
+.pillBlock:active,
+.pillBlockActive {
+  background: rgba(255, 59, 48, 0.15);
+  border-color: #ff3b30;
+  color: #ff3b30;
+}
+
+/* Boost mode pill */
+.pillBoost {
+  border-color: rgba(52, 199, 89, 0.3);
+  color: #5edc78;
+}
+
+.pillBoost:active,
+.pillBoostActive {
+  background: rgba(52, 199, 89, 0.15);
+  border-color: #34c759;
+  color: #34c759;
+}
+
+/* ---- Manage mode ---- */
+.manageGroup {
+  margin-bottom: 24px;
+}
+
+.manageGroupTitle {
+  font-family: var(--font-primary);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.manageGroupTitleBlock {
+  color: #ff6b6b;
+}
+
+.manageGroupTitleBoost {
+  color: #5edc78;
+}
+
+.manageItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  margin-bottom: 6px;
+}
+
+.manageItemLabel {
+  font-family: var(--font-secondary);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.manageItemType {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+}
+
+.removeBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.removeBtn:active {
+  background: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
+}
+
+/* ---- Empty state ---- */
+.emptyState {
+  text-align: center;
+  padding: 24px 0;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: var(--font-secondary);
+  font-size: 14px;
+}
+
+/* ---- Toast ---- */
+.toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #2a2a2a;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-family: var(--font-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 400;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.toastVisible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

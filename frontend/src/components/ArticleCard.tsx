@@ -6,6 +6,7 @@ import type { Article } from '@/lib/api';
 import { trackInteraction } from '@/lib/api';
 import { useArticleStore } from '@/store/useArticleStore';
 import { triggerHaptic } from '@/lib/haptics';
+import ArticleMenu from './ArticleMenu';
 import styles from './ArticleCard.module.css';
 
 // Using CSS Ambient Glow technique to extract color visually instead of JS Canvas
@@ -106,6 +107,9 @@ export default function ArticleCard({ article }: ArticleCardProps) {
       style={{ ...cardStyle, cursor: 'pointer' }}
       onClick={handleReadMore}
     >
+      {/* Three-dot menu */}
+      <ArticleMenu article={article} />
+
       {/* Hero Image */}
       {article.image_url && !imgError ? (
         <img

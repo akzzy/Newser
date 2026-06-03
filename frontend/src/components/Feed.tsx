@@ -31,13 +31,16 @@ export default function Feed() {
     showOnboardingPopup,
     sharedLinkMode,
     setShowOnboardingPopup,
-    initializeGuestId
+    initializeGuestId,
+    initializePreferences,
+    isArticleBlocked
   } = useArticleStore();
 
-  // Initialize guest ID on first mount
+  // Initialize guest ID and preferences on first mount
   useEffect(() => {
     initializeGuestId();
-  }, [initializeGuestId]);
+    initializePreferences();
+  }, [initializeGuestId, initializePreferences]);
 
   const feedRef = useRef<HTMLDivElement>(null);
   
@@ -299,8 +302,8 @@ export default function Feed() {
             </p>
           </div>
         ) : (
-          // Article cards
-          articles.map((article) => (
+          // Article cards (filtered by preferences)
+          articles.filter((a) => !isArticleBlocked(a)).map((article) => (
             <ArticleCard key={article.id} article={article} />
           ))
         )}

@@ -3,6 +3,8 @@
 import { create } from 'zustand';
 import type { Article } from '@/lib/api';
 
+type PrefType = 'tag' | 'category' | 'source';
+
 interface ArticleStore {
   articles: Article[];
   currentIndex: number;
@@ -37,7 +39,38 @@ interface ArticleStore {
   // Interactions
   likedArticles: Record<string, boolean>;
   toggleLike: (id: string) => void;
+
+  // Preferences (block / boost)
+  blockedTags: string[];
+  blockedCategories: string[];
+  blockedSources: string[];
+  boostedTags: string[];
+  boostedCategories: string[];
+  boostedSources: string[];
+  initializePreferences: () => void;
+  blockItem: (type: PrefType, value: string) => void;
+  boostItem: (type: PrefType, value: string) => void;
+  unblockItem: (type: PrefType, value: string) => void;
+  unboostItem: (type: PrefType, value: string) => void;
+  isArticleBlocked: (article: Article) => boolean;
+  getBoostScore: (article: Article) => number;
 }
+
+// Helper to read a JSON array from localStorage
+function loadList(key: string): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+// Helper to persist a JSON array to localStorage
+function saveList(key: string, list: string[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(key, JSON.stringify(list));
+}
+
 export const useArticleStore = create<ArticleStore>((set, get) => ({
   articles: [],
   currentIndex: 0,
@@ -136,5 +169,79 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
       ...state.likedArticles,
       [id]: !state.likedArticles[id]
     }
-  }))
+  })),
+
+  // ── Preferences ──
+  blockedTags: [],
+  blockedCategories: [],
+  blockedSources: [],
+  boostedTags: [],
+  boostedCategories: [],
+  boostedSources: [],
+
+  initializePreferences: () => {
+    set({
+      blockedTags: loadList('newser_blocked_tags'),
+      blockedCategories: loadList('newser_blocked_categories'),
+      blockedSources: loadList('newser_blocked_sources'),
+      boostedTags: loadList('newser_boosted_tags'),
+      boostedCategories: loadList('newser_boosted_categories'),
+      boostedSources: loadList('newser_boosted_sources'),
+    });
+  },
+
+  blockItem: (type, value) => {
+    const state = get();
+    const key = type === 'tag' ? 'blockedTags' : type === 'category' ? 'blockedCategories' : 'blockedSources';
+    const storageKey = `newser_blocked_${type === 'tag' ? 'tags' : type === 'category' ? 'categories' : 'sources'}`;
+    if (state[key].includes(value)) return;
+    const updated = [...state[key], value];
+    saveList(storageKey, updated);
+    set({ [key]: updated } as Partial<ArticleStore>);
+  },
+
+  boostItem: (type, value) => {
+    const state = get();
+    const key = type === 'tag' ? 'boostedTags' : type === 'category' ? 'boostedCategories' : 'boostedSources';
+    const storageKey = `newser_boosted_${type === 'tag' ? 'tags' : type === 'category' ? 'categories' : 'sources'}`;
+    if (state[key].includes(value)) return;
+    const updated = [...state[key], value];
+    saveList(storageKey, updated);
+    set({ [key]: updated } as Partial<ArticleStore>);
+  },
+
+  unblockItem: (type, value) => {
+    const state = get();
+    const key = type === 'tag' ? 'blockedTags' : type === 'category' ? 'blockedCategories' : 'blockedSources';
+    const storageKey = `newser_blocked_${type === 'tag' ? 'tags' : type === 'category' ? 'categories' : 'sources'}`;
+    const updated = state[key].filter((v: string) => v !== value);
+    saveList(storageKey, updated);
+    set({ [key]: updated } as Partial<ArticleStore>);
+  },
+
+  unboostItem: (type, value) => {
+    const state = get();
+    const key = type === 'tag' ? 'boostedTags' : type === 'category' ? 'boostedCategories' : 'boostedSources';
+    const storageKey = `newser_boosted_${type === 'tag' ? 'tags' : type === 'category' ? 'categories' : 'sources'}`;
+    const updated = state[key].filter((v: string) => v !== value);
+    saveList(storageKey, updated);
+    set({ [key]: updated } as Partial<ArticleStore>);
+  },
+
+  isArticleBlocked: (article) => {
+    const state = get();
+    if (article.ai_tags?.some((tag: string) => state.blockedTags.includes(tag))) return true;
+    if (state.blockedCategories.includes(article.ai_category)) return true;
+    if (article.source && state.blockedSources.includes(article.source.slug)) return true;
+    return false;
+  },
+
+  getBoostScore: (article) => {
+    const state = get();
+    let score = 0;
+    if (article.ai_tags?.some((tag: string) => state.boostedTags.includes(tag))) score += 2;
+    if (state.boostedCategories.includes(article.ai_category)) score += 3;
+    if (article.source && state.boostedSources.includes(article.source.slug)) score += 1;
+    return score;
+  },
 }));

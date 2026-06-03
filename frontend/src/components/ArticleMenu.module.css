@@ -1,0 +1,99 @@
+/* ================================================
+   ArticleMenu — Three-dot kebab menu on article cards
+   ================================================ */
+
+.menuWrapper {
+  position: absolute;
+  top: calc(125px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  z-index: 10;
+}
+
+.menuButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.menuButton:active {
+  transform: scale(0.9);
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* ---- Dropdown ---- */
+.dropdown {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  min-width: 200px;
+  background: #242424;
+  border-radius: 14px;
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.9) translateY(-8px);
+  transform-origin: top right;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.dropdownOpen {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 18px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: var(--font-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+
+.menuItem:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.menuItem:not(:last-child) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.menuItemIcon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.menuItemBlock {
+  color: #ff6b6b;
+}
+
+.menuItemBoost {
+  color: #5edc78;
+}
+
+.menuItemManage {
+  color: rgba(255, 255, 255, 0.5);
+}
