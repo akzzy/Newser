@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { useArticleStore } from '@/store/useArticleStore';
 import { fetchArticles, fetchCategories, trackInteraction } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
@@ -93,6 +93,12 @@ export default function Feed() {
       loadArticles(1, category, source, sort, true);
     }
   }, [category, source, sort, loadArticles, guestId, articles.length]);
+
+  // Create a memoized filtered list to ensure scroll triggers fire correctly 
+  // even if local tag blocking reduces the visible list length.
+  const filteredArticles = useMemo(() => {
+    return articles.filter((a) => !isArticleBlocked(a));
+  }, [articles, isArticleBlocked]);
 
   // Track current card via scroll position
   const handleScroll = useCallback(() => {
