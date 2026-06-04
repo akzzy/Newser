@@ -15,7 +15,8 @@ const PORT = process.env.PORT || 4000;
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.post('/scrape', async (req, res) => {
-  const { url, selector } = req.body;
+  const { url: rawUrl, selector } = req.body;
+  const url = rawUrl ? rawUrl.trim() : null;
   if (!url) {
     return res.status(400).json({ error: 'Missing URL' });
   }
