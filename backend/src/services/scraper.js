@@ -15,8 +15,9 @@ export async function scrapeArticle(url, sourceConfig = null) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      // Wait up to 45s for the microservice to launch Chrome and scrape
-      signal: AbortSignal.timeout(45000)
+      // Wait up to 2 minutes for the microservice to launch Chrome and scrape
+      // Render's free CPU is extremely slow so heavy pages like Wired can take >45s
+      signal: AbortSignal.timeout(120000)
     });
 
     if (!response.ok) {
