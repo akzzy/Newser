@@ -64,6 +64,15 @@ export default async function adminRoutes(fastify, options) {
 
       if (logError) throw logError;
 
+      // 2.5 Fetch unresolved system alerts
+      const { data: systemAlerts, error: alertError } = await supabase
+        .from('system_alerts')
+        .select('*, source:sources(name)')
+        .eq('is_resolved', false)
+        .order('created_at', { ascending: false });
+        
+      if (alertError) throw alertError;
+
       // 3. Queue Stats (pending, completed, failed)
       // Supabase REST doesn't easily do GROUP BY counts in a single query efficiently,
       // so we'll do three quick count queries.
@@ -91,7 +100,8 @@ export default async function adminRoutes(fastify, options) {
       return {
         stats,
         recentArticles: recentArticles || [],
-        duplicateLogs: duplicateLogs || []
+        duplicateLogs: duplicateLogs || [],
+        systemAlerts: systemAlerts || []
       };
     } catch (err) {
       fastify.log.error(`[AdminAPI] Error fetching dashboard data: ${err.message}`);
@@ -144,6 +154,38 @@ export default async function adminRoutes(fastify, options) {
     } catch (err) {
       fastify.log.error(`[AdminAPI] Error updating article: ${err.message}`);
       return reply.code(500).send({ error: 'Failed to update article' });
+    }
+  });
+
+  // POST /api/admin/alerts/:id/resolve
+  fastify.post('/alerts/:id/resolve', async (request, reply) => {
+    try {
+      const { id } = request.params;
+      const { error } = await supabase.from('system_alerts').update({ is_resolved: true }).eq('id', id);
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      fastify.log.error(`[AdminAPI] Error resolving alert: ${err.message}`);
+      return reply.code(500).send({ error: 'Failed to resolve alert' });
+    }
+  });
+
+  // GET /api/admin/sources/:id/articles
+  fastify.get('/sources/:id/articles', async (request, reply) => {
+    try {
+      const { id } = request.params;
+      const { data, error } = await supabase
+        .from('articles')
+        .select('id, title, title_hook, is_scraped, fetched_at, rewritten_at, rewrite_status')
+        .eq('source_id', id)
+        .order('rewritten_at', { ascending: false, nullsFirst: false })
+        .limit(50);
+
+      if (error) throw error;
+      return { articles: data || [] };
+    } catch (err) {
+      fastify.log.error(`[AdminAPI] Error fetching source articles: ${err.message}`);
+      return reply.code(500).send({ error: 'Failed to fetch source articles' });
     }
   });
   // GET /api/admin/sources

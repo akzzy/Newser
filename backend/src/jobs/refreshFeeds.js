@@ -296,6 +296,11 @@ async function refreshAllFeeds(fastify) {
         }
       } catch (err) {
         logger.error(`[RefreshFeeds] Scrape error for "${article.title}": ${err.message}`);
+        await supabase.from('system_alerts').insert({
+          type: 'scraper_error',
+          message: `Failed to scrape "${article.title}": ${err.message}`,
+          source_id: article.source_id
+        });
       }
     }
   }

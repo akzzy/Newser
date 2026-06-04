@@ -40,6 +40,6 @@ export async function scrapeArticle(url, sourceConfig = null) {
     };
   } catch (error) {
     console.error(`[Scraper] Error delegating ${url} to microservice:`, error.message);
-    return { content: '', image_url: null };
+    throw error;
   }
 }
