@@ -15,6 +15,8 @@ export default function AdminDashboard() {
   const [apiBase, setApiBase] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState('all');
+  const [currentTab, setCurrentTab] = useState<'overview' | 'sources'>('overview');
+  const [sourcesData, setSourcesData] = useState<any[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
   const limit = 20;
   
@@ -26,6 +28,7 @@ export default function AdminDashboard() {
     if (password === SECRET_PASSWORD) {
       setIsAuthenticated(true);
       fetchData(1, 'all');
+      fetchSources();
     } else {
       setError('Incorrect password');
     }
@@ -34,6 +37,7 @@ export default function AdminDashboard() {
   const fetchData = async (pageNum: number | any = currentPage, currentFilter = filter) => {
     const targetPage = typeof pageNum === 'number' ? pageNum : currentPage;
     setLoading(true);
+    setError('');
     try {
       let API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
@@ -51,6 +55,30 @@ export default function AdminDashboard() {
       const json = await response.json();
       setData(json);
       setCurrentPage(targetPage);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSources = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      let API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.startsWith('127.')) {
+          API_BASE = `http://${hostname}:3001`; 
+        }
+      }
+      setApiBase(API_BASE);
+
+      const response = await fetch(`${API_BASE}/api/admin/sources`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Failed to fetch sources (${response.status})`);
+      const json = await response.json();
+      setSourcesData(json.sources || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -132,6 +160,20 @@ export default function AdminDashboard() {
     }
   };
 
+  const triggerScrape = async () => {
+    if (!confirm('This will trigger a full RSS fetch and scraping cycle. Continue?')) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`${apiBase}/api/refresh`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to trigger refresh');
+      alert('Scraping cycle triggered successfully! Check the terminal logs to watch progress.');
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className={styles.loginContainer}>
@@ -158,14 +200,117 @@ export default function AdminDashboard() {
     <div className={styles.container}>
       <header className={styles.header}>
         <h1>Newser System Operations</h1>
-        <button onClick={() => fetchData()} disabled={loading} className={styles.refreshBtn}>
-          {loading ? 'Syncing...' : 'Sync Data'}
-        </button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button onClick={triggerScrape} disabled={loading} className={`${styles.refreshBtn} ${styles.triggerBtn}`}>
+            Trigger Scraping Cycle
+          </button>
+          <button onClick={() => {
+            if (currentTab === 'overview') fetchData();
+            else fetchSources();
+          }} disabled={loading} className={styles.refreshBtn}>
+            {loading ? 'Syncing...' : 'Sync Data'}
+          </button>
+        </div>
       </header>
+
+      {/* Tabs */}
+      <div className={styles.tabsContainer}>
+        <button 
+          className={`${styles.tabBtn} ${currentTab === 'overview' ? styles.activeTab : ''}`}
+          onClick={() => setCurrentTab('overview')}
+        >
+          Data Overview
+        </button>
+        <button 
+          className={`${styles.tabBtn} ${currentTab === 'sources' ? styles.activeTab : ''}`}
+          onClick={() => setCurrentTab('sources')}
+        >
+          Sources Monitor
+        </button>
+      </div>
 
       {error && <div className={styles.error}>{error}</div>}
 
-      {/* Bento Box Analytics Grid */}
+      {currentTab === 'sources' && (
+        <div className={styles.sourcesContainer}>
+          <div className={styles.sourcesStatusBar}>
+            <div className={styles.statusMetric}>
+              <span className={styles.statusLabel}>Active Sources</span>
+              <span className={styles.statusValue}>{sourcesData.filter(s => s.is_active).length}</span>
+            </div>
+            <div className={styles.statusMetric}>
+              <span className={styles.statusLabel}>Total Articles Today</span>
+              <span className={styles.statusValue}>
+                {sourcesData.reduce((acc, s) => acc + (s.articles_today || 0), 0)}
+              </span>
+            </div>
+            <div className={styles.statusMetric}>
+              <span className={styles.statusLabel}>Total Database Size</span>
+              <span className={styles.statusValue}>
+                {sourcesData.reduce((acc, s) => acc + (s.total_articles || 0), 0)}
+              </span>
+            </div>
+          </div>
+          
+          <div className={styles.tableContainer} style={{ marginTop: '2rem' }}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Source</th>
+                  <th>Method</th>
+                  <th>Articles Today</th>
+                  <th>Total Articles</th>
+                  <th>Last Sync</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sourcesData.map(source => (
+                  <tr key={source.id}>
+                    <td>
+                      <div className={`${styles.statusDot} ${styles['status' + source.status]}`} title={source.status} />
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {source.logo_url && (
+                          <img src={source.logo_url} alt="" style={{ width: 24, height: 24, borderRadius: 4, objectFit: 'contain', background: 'white' }} />
+                        )}
+                        <strong>{source.name}</strong>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={styles.badge} style={{ opacity: 0.8 }}>{source.fetch_method.toUpperCase()}</span>
+                    </td>
+                    <td>
+                      <span style={{ color: source.articles_today > 0 ? '#10b981' : '#c9d1d9' }}>
+                        {source.articles_today}
+                      </span>
+                    </td>
+                    <td>{source.total_articles}</td>
+                    <td style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      {source.last_fetch_time 
+                        ? new Date(source.last_fetch_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                        : 'Never'
+                      }
+                    </td>
+                  </tr>
+                ))}
+                {sourcesData.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                      No sources found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {currentTab === 'overview' && (
+        <>
+          {/* Bento Box Analytics Grid */}
       <div className={styles.bentoGrid}>
         
         {/* 1. The Queue (Full width) */}
@@ -377,7 +522,9 @@ export default function AdminDashboard() {
             Next
           </button>
         </div>
-      </div>
+        </div>
+        </>
+      )}
 
       {/* Edit Modal */}
       {editingArticle && (

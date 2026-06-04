@@ -45,6 +45,16 @@
   cursor: not-allowed;
 }
 
+.triggerBtn {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.triggerBtn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.2);
+}
+
 /* Bento Grid System */
 .bentoGrid {
   display: grid;
@@ -135,6 +145,94 @@
   color: rgba(255,255,255,0.5);
   font-weight: 500;
 }
+
+/* Tabs */
+.tabsContainer {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 1rem;
+}
+
+.tabBtn {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.tabBtn:hover {
+  color: rgba(255,255,255,0.8);
+}
+
+.tabBtn.activeTab {
+  color: white;
+  border-bottom: 2px solid white;
+}
+
+/* Sources Monitor */
+.sourcesContainer {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sourcesStatusBar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 1.5rem;
+  backdrop-filter: blur(20px);
+}
+
+.statusMetric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0,0,0,0.2);
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.statusLabel {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.statusValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+}
+
+.statusDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.statushealthy { color: #10b981; background: #10b981; }
+.statusstale { color: #f5a623; background: #f5a623; }
+.statusfailing { color: #ef4444; background: #ef4444; }
 
 /* Data Terminal Section */
 .terminalSection {

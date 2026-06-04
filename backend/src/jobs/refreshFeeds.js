@@ -266,7 +266,8 @@ async function refreshAllFeeds(fastify) {
     article.is_scraped = false; // Default
     if (article.original_content.length < 200 || !article.image_url) {
       try {
-        const scraped = await scrapeArticle(article.url);
+        const source = activeSources.find(s => s.id === article.source_id);
+        const scraped = await scrapeArticle(article.url, source);
         if (scraped.content.length > article.original_content.length) {
           article.original_content = scraped.content;
           article.is_scraped = true; // Mark as successfully scraped

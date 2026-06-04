@@ -1,84 +1,47 @@
-import * as cheerio from 'cheerio';
+import fetch from 'node-fetch';
 
 /**
  * Scrape article content from a web page when RSS content is insufficient.
- * Used as a fallback when RSS feeds don't provide full article text.
+ * Now routes through our stealth Puppeteer microservice on Render.
  */
-export async function scrapeArticle(url) {
+export async function scrapeArticle(url, sourceConfig = null) {
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml'
-      },
-      signal: AbortSignal.timeout(15000)
+    const serviceUrl = process.env.SCRAPER_SERVICE_URL || 'http://localhost:4000';
+    
+    const body = { url };
+    if (sourceConfig && sourceConfig.content_selector) {
+      body.selector = sourceConfig.content_selector;
+    }
+
+    const response = await fetch(`${serviceUrl}/scrape`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      // Wait up to 45s for the microservice to launch Chrome and scrape
+      signal: AbortSignal.timeout(45000)
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Microservice HTTP ${response.status}: ${errorText}`);
     }
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
-
-    // Remove unwanted elements
-    $('script, style, nav, footer, header, aside, .ad, .advertisement, .social-share, .comments, .related-posts, [role="complementary"]').remove();
-
-    // Try common article content selectors
-    const contentSelectors = [
-      'article .entry-content',
-      'article .post-content',
-      'article .article-body',
-      '.article-content',
-      '.post-body',
-      '.entry-content',
-      'article',
-      '[itemprop="articleBody"]',
-      '.story-body',
-      'main'
-    ];
-
-    let content = '';
-    for (const selector of contentSelectors) {
-      const el = $(selector);
-      if (el.length && el.text().trim().length > 200) {
-        content = el.text().trim();
-        break;
-      }
+    const data = await response.json();
+    
+    // We get markdown straight from the microservice!
+    let content = data.content;
+    
+    if (content) {
+      // Cap at 5000 chars for AI context limits
+      content = content.substring(0, 5000);
     }
-
-    // Fallback: Try to extract from SEO JSON-LD (solves ESPN and other React/SPA sites)
-    $('script[type="application/ld+json"]').each((i, el) => {
-      try {
-        const data = JSON.parse($(el).html());
-        
-        // Handle array of schemas or single schema object
-        const schemas = Array.isArray(data) ? data : [data];
-        
-        for (const schema of schemas) {
-          if (schema['@type'] === 'NewsArticle' || schema['@type'] === 'Article' || schema['@type'] === 'ReportageNewsArticle') {
-            if (schema.articleBody && schema.articleBody.length > content.length) {
-              content = schema.articleBody;
-            }
-          }
-        }
-      } catch (e) {
-        // Ignore parse errors
-      }
-    });
-
-    // Extract hero image
-    let imageUrl = null;
-    const ogImage = $('meta[property="og:image"]').attr('content');
-    const twitterImage = $('meta[name="twitter:image"]').attr('content');
-    imageUrl = ogImage || twitterImage || null;
 
     return {
-      content: content.substring(0, 5000), // Cap for AI input
-      image_url: imageUrl
+      content: content || '',
+      image_url: data.image_url || null 
     };
   } catch (error) {
-    console.error(`[Scraper] Error scraping ${url}:`, error.message);
+    console.error(`[Scraper] Error delegating ${url} to microservice:`, error.message);
     return { content: '', image_url: null };
   }
 }

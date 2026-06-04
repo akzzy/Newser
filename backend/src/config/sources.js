@@ -199,5 +199,28 @@ export const sources = [
     category: 'automotive',
     fetch_method: 'rss',
     is_active: true
+  },
+  {
+    name: 'CarBuzz',
+    slug: 'carbuzz',
+    feed_url: 'https://carbuzz.com/feed/category/news/',
+    website_url: 'https://carbuzz.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://carbuzz.com&size=128',
+    color: '#FF6600',
+    category: 'automotive',
+    fetch_method: 'rss',
+    content_selector: '#article-body > div.content-block-regular > p',
+    is_active: true
+  },
+  {
+    name: 'TheDrive',
+    slug: 'the-drive',
+    feed_url: 'https://www.thedrive.com/feed',
+    website_url: 'https://www.thedrive.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://thedrive.com&size=128',
+    color: '#282828',
+    category: 'automotive',
+    fetch_method: 'rss',
+    is_active: true
   }
 ];

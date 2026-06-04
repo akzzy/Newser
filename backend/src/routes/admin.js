@@ -146,4 +146,66 @@ export default async function adminRoutes(fastify, options) {
       return reply.code(500).send({ error: 'Failed to update article' });
     }
   });
+  // GET /api/admin/sources
+  // Returns telemetry and health metrics for each news source
+  fastify.get('/sources', async (request, reply) => {
+    try {
+      const { data: sources, error: sourcesError } = await supabase.from('sources').select('*');
+      if (sourcesError) throw sourcesError;
+
+      const sourceMetrics = await Promise.all(sources.map(async (source) => {
+        // Total articles
+        const { count: totalArticles } = await supabase
+          .from('articles')
+          .select('*', { count: 'exact', head: true })
+          .eq('source_id', source.id);
+
+        // Articles today
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { count: articlesToday } = await supabase
+          .from('articles')
+          .select('*', { count: 'exact', head: true })
+          .eq('source_id', source.id)
+          .gte('fetched_at', yesterday);
+
+        // Last fetch time
+        const { data: latestArticle } = await supabase
+          .from('articles')
+          .select('fetched_at')
+          .eq('source_id', source.id)
+          .order('fetched_at', { ascending: false })
+          .limit(1);
+
+        const last_fetch_time = latestArticle && latestArticle.length > 0 ? latestArticle[0].fetched_at : null;
+
+        // Determine status
+        let status = 'inactive';
+        if (source.is_active) {
+          if (articlesToday > 0) status = 'healthy';
+          else if (last_fetch_time && new Date(last_fetch_time) > new Date(Date.now() - 48 * 60 * 60 * 1000)) status = 'stale';
+          else status = 'failing';
+        }
+
+        return {
+          ...source,
+          total_articles: totalArticles || 0,
+          articles_today: articlesToday || 0,
+          last_fetch_time,
+          status
+        };
+      }));
+
+      // Sort by status and then name
+      sourceMetrics.sort((a, b) => {
+        if (a.status === 'failing' && b.status !== 'failing') return -1;
+        if (a.status !== 'failing' && b.status === 'failing') return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      return { sources: sourceMetrics };
+    } catch (err) {
+      fastify.log.error(`[AdminAPI] Error fetching sources: ${err.message}`);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
 }
