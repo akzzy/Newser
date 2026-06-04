@@ -317,10 +317,10 @@ async function refreshAllFeeds(fastify) {
   for (const article of uniqueArticles) {
     article.is_scraped = false; // Default
     
-    // Check word count instead of character count
-    const wordCount = article.original_content ? article.original_content.trim().split(/\s+/).length : 0;
+    // Check character count as requested (1000 characters)
+    const charCount = article.original_content ? article.original_content.length : 0;
     
-    if (wordCount < 200 || !article.image_url) {
+    if (charCount < 1000 || !article.image_url) {
       try {
         const source = activeSources.find(s => s.id === article.source_id);
         const scraped = await scrapeArticle(article.url, source);
