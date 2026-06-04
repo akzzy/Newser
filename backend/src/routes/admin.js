@@ -109,6 +109,23 @@ export default async function adminRoutes(fastify, options) {
     }
   });
 
+  // GET /api/admin/cron-runs
+  fastify.get('/cron-runs', async (request, reply) => {
+    try {
+      const { data, error } = await supabase
+        .from('cron_runs')
+        .select('*')
+        .order('started_at', { ascending: false })
+        .limit(50);
+        
+      if (error) throw error;
+      return { runs: data || [] };
+    } catch (err) {
+      fastify.log.error(`[AdminAPI] Error fetching cron runs: ${err.message}`);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
   // DELETE /api/admin/articles/:id
   fastify.delete('/articles/:id', async (request, reply) => {
     try {

@@ -113,7 +113,7 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
   }
 
   logger.info(`[AIRewrite] Completed: ${successCount}/${pendingArticles.length} articles rewritten`);
-  return successCount;
+  return { successCount, failedCount: pendingArticles.length - successCount };
 }
 
 /**
@@ -138,15 +138,29 @@ async function refreshAllFeeds(fastify) {
   // ── Phase 1: Fetch all feeds into a single article pool ──
   const activeSources = sources.filter(s => s.is_active);
   let allFetched = [];
+  
+  const cycleStats = {
+    started_at: new Date(startTime).toISOString(),
+    total_fetched: 0,
+    total_new_urls: 0,
+    total_inserted: 0,
+    duplicates_dropped: 0,
+    ai_rewritten: 0,
+    ai_failed: 0,
+    source_breakdown: {}
+  };
 
   for (const source of activeSources) {
     try {
       const articles = await fetchSourceArticles(supabase, source, logger);
+      cycleStats.source_breakdown[source.name] = { fetched: articles.length, inserted: 0 };
       allFetched = allFetched.concat(articles);
     } catch (error) {
       logger.error(`[RefreshFeeds] Error fetching ${source.name}: ${error.message}`);
     }
   }
+
+  cycleStats.total_fetched = allFetched.length;
 
   if (allFetched.length === 0) {
     logger.info('[RefreshFeeds] No articles fetched from any source.');
@@ -190,6 +204,7 @@ async function refreshAllFeeds(fastify) {
   }
 
   const newArticles = allFetched.filter(a => a.url && !existingUrls.has(a.url));
+  cycleStats.total_new_urls = newArticles.length;
 
   if (newArticles.length === 0) {
     logger.info('[RefreshFeeds] No new articles (all URLs already in DB).');
@@ -233,6 +248,7 @@ async function refreshAllFeeds(fastify) {
 
     if (result.isDuplicate) {
       skippedCount++;
+      cycleStats.duplicates_dropped++;
       logger.info(`[RefreshFeeds] Dropping duplicate (${result.method}, score: ${result.score.toFixed(2)}): "${article.title}" ↔ "${result.matchedTitle}"`);
       
       const droppedSource = dbSourceIdToName.get(article.source_id) || 'Unknown';
@@ -343,16 +359,27 @@ async function refreshAllFeeds(fastify) {
       logger.error(`[RefreshFeeds] Insert error: ${insertErr.message}`);
     } else {
       insertedCount++;
+      const sourceName = dbSourceIdToName.get(article.source_id);
+      if (sourceName && cycleStats.source_breakdown[sourceName]) {
+        cycleStats.source_breakdown[sourceName].inserted++;
+      }
     }
   }
+  
+  cycleStats.total_inserted = insertedCount;
 
   logger.info(`[RefreshFeeds] Phase 5 done: ${insertedCount} new articles stored`);
 
   // ── Phase 6: Rewrite pending articles with AI ──
-  const rewriteCount = await rewritePendingArticles(supabase, logger, 50);
+  const rewriteStats = await rewritePendingArticles(supabase, logger, 50);
+  cycleStats.ai_rewritten = rewriteStats.successCount;
+  cycleStats.ai_failed = rewriteStats.failedCount;
+
+  cycleStats.completed_at = new Date().toISOString();
+  await supabase.from('cron_runs').insert(cycleStats);
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-  logger.info(`[RefreshFeeds] Cycle complete. ${insertedCount} stored, ${rewriteCount} rewritten, ${skippedCount} duplicates dropped in ${elapsed}s`);
+  logger.info(`[RefreshFeeds] Cycle complete. ${insertedCount} stored, ${rewriteStats.successCount} rewritten, ${skippedCount} duplicates dropped in ${elapsed}s`);
 }
 
 /**

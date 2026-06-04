@@ -15,7 +15,9 @@ export default function AdminDashboard() {
   const [apiBase, setApiBase] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [filter, setFilter] = useState('all');
-  const [currentTab, setCurrentTab] = useState<'overview' | 'sources'>('overview');
+  const [currentTab, setCurrentTab] = useState<'overview' | 'sources' | 'history'>('overview');
+  const [cronRuns, setCronRuns] = useState<any[]>([]);
+  const [expandedCron, setExpandedCron] = useState<string | null>(null);
   const [sourcesData, setSourcesData] = useState<any[]>([]);
   const [selectedSource, setSelectedSource] = useState<any>(null);
   const [sourceArticles, setSourceArticles] = useState<any[]>([]);
@@ -32,6 +34,7 @@ export default function AdminDashboard() {
       setIsAuthenticated(true);
       fetchData(1, 'all');
       fetchSources();
+      fetchCronRuns();
     } else {
       setError('Incorrect password');
     }
@@ -89,6 +92,18 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchCronRuns = async (base = apiBase) => {
+    try {
+      const response = await fetch(`${base}/api/admin/cron-runs`, { cache: 'no-store' });
+      if (response.ok) {
+        const json = await response.json();
+        setCronRuns(json.runs || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch cron runs', err);
+    }
+  };
+
   const fetchLogs = async (base = apiBase) => {
     if (!base) return;
     try {
@@ -107,11 +122,18 @@ export default function AdminDashboard() {
     if (!isAuthenticated) return;
     
     fetchLogs(); // initial fetch
-    const interval = setInterval(() => {
+    const logInterval = setInterval(() => {
       fetchLogs();
     }, 3000);
     
-    return () => clearInterval(interval);
+    const cronInterval = setInterval(() => {
+      fetchCronRuns();
+    }, 15000);
+    
+    return () => {
+      clearInterval(logInterval);
+      clearInterval(cronInterval);
+    };
   }, [isAuthenticated, apiBase]);
 
   // Auto-scroll terminal to bottom
@@ -263,6 +285,15 @@ export default function AdminDashboard() {
         >
           Sources Monitor
         </button>
+        <button 
+          className={`${styles.tabBtn} ${currentTab === 'history' ? styles.activeTab : ''}`}
+          onClick={() => {
+            setCurrentTab('history');
+            if (cronRuns.length === 0) fetchCronRuns();
+          }}
+        >
+          Sync History
+        </button>
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
@@ -370,6 +401,79 @@ export default function AdminDashboard() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {currentTab === 'history' && (
+        <div className={styles.tableContainer}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Sync Cycle Time</th>
+                <th>Total Fetched</th>
+                <th>Passed URL Check</th>
+                <th>Semantic Drops</th>
+                <th>Actually Inserted</th>
+                <th>AI Rewrites (Success/Fail)</th>
+                <th>Source Breakdown</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cronRuns.map(run => (
+                <React.Fragment key={run.id}>
+                  <tr onClick={() => setExpandedCron(expandedCron === run.id ? null : run.id)} style={{ cursor: 'pointer' }} className={styles.sourceRow}>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      {new Date(run.started_at).toLocaleString()}
+                      <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>
+                        {run.completed_at ? `${((new Date(run.completed_at).getTime() - new Date(run.started_at).getTime()) / 1000).toFixed(1)}s` : 'In Progress'}
+                      </div>
+                    </td>
+                    <td><span className={styles.badge} style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }}>{run.total_fetched}</span></td>
+                    <td><span className={styles.badge} style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd' }}>{run.total_new_urls}</span></td>
+                    <td><span className={styles.badge} style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5' }}>{run.duplicates_dropped}</span></td>
+                    <td><span className={styles.badge} style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7' }}>{run.total_inserted}</span></td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ color: '#6ee7b7' }}>{run.ai_rewritten}</span> / <span style={{ color: '#fca5a5' }}>{run.ai_failed}</span>
+                      </div>
+                    </td>
+                    <td style={{ color: '#93c5fd', textDecoration: 'underline' }}>
+                      {expandedCron === run.id ? 'Hide Details' : 'View Details'}
+                    </td>
+                  </tr>
+                  {expandedCron === run.id && run.source_breakdown && (
+                    <tr style={{ background: 'rgba(0,0,0,0.3)' }}>
+                      <td colSpan={7} style={{ padding: '1rem 2rem' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                          {Object.entries(run.source_breakdown).map(([sourceName, stats]: any) => (
+                            <div key={sourceName} style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '8px', minWidth: '150px' }}>
+                              <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: 'white' }}>{sourceName}</div>
+                              <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Fetched:</span> <span>{stats.fetched}</span>
+                              </div>
+                              <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Inserted:</span> <span style={{ color: stats.inserted > 0 ? '#6ee7b7' : 'inherit' }}>{stats.inserted}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {Object.keys(run.source_breakdown).length === 0 && (
+                            <div style={{ color: 'rgba(255,255,255,0.5)' }}>No source data recorded for this cycle.</div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+              {cronRuns.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                    No sync history found yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
