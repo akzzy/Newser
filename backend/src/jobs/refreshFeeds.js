@@ -131,6 +131,10 @@ async function refreshAllFeeds(fastify) {
   const supabase = fastify.supabase;
   const logger = fastify.log;
 
+  // Fetch DB sources to map source_id to name for logging
+  const { data: dbSources } = await supabase.from('sources').select('id, name');
+  const dbSourceIdToName = new Map((dbSources || []).map(s => [s.id, s.name]));
+
   // ── Phase 1: Fetch all feeds into a single article pool ──
   const activeSources = sources.filter(s => s.is_active);
   let allFetched = [];
@@ -216,7 +220,7 @@ async function refreshAllFeeds(fastify) {
       skippedCount++;
       logger.info(`[RefreshFeeds] Dropping duplicate (${result.method}, score: ${result.score.toFixed(2)}): "${article.title}" ↔ "${result.matchedTitle}"`);
       
-      const droppedSource = activeSources.find(s => s.id === article.source_id)?.name || 'Unknown';
+      const droppedSource = dbSourceIdToName.get(article.source_id) || 'Unknown';
       
       let matchedSourceId = dbTitleToSourceId.get(result.matchedTitle);
       if (!matchedSourceId) {
@@ -224,7 +228,7 @@ async function refreshAllFeeds(fastify) {
         const inMemoryMatch = uniqueArticles.find(a => a.title === result.matchedTitle);
         if (inMemoryMatch) matchedSourceId = inMemoryMatch.source_id;
       }
-      const matchedSource = activeSources.find(s => s.id === matchedSourceId)?.name || 'Unknown';
+      const matchedSource = dbSourceIdToName.get(matchedSourceId) || 'Unknown';
 
       // Log to DB for admin dashboard
       await supabase.from('duplicate_logs').insert({
