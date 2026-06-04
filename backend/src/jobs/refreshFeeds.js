@@ -186,12 +186,13 @@ async function refreshAllFeeds(fastify) {
   const cutoffTime = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
   const { data: recentDbArticles } = await supabase
     .from('articles')
-    .select('id, title')
+    .select('id, title, source_id')
     .gte('published_at', cutoffTime);
 
   // Start with DB articles as the known-unique set
   const knownTitles = (recentDbArticles || []).map(a => a.title);
   const dbTitleToId = new Map((recentDbArticles || []).map(a => [a.title, a.id]));
+  const dbTitleToSourceId = new Map((recentDbArticles || []).map(a => [a.title, a.source_id]));
   const uniqueArticles = [];
   let skippedCount = 0;
 
@@ -215,12 +216,24 @@ async function refreshAllFeeds(fastify) {
       skippedCount++;
       logger.info(`[RefreshFeeds] Dropping duplicate (${result.method}, score: ${result.score.toFixed(2)}): "${article.title}" ↔ "${result.matchedTitle}"`);
       
+      const droppedSource = activeSources.find(s => s.id === article.source_id)?.name || 'Unknown';
+      
+      let matchedSourceId = dbTitleToSourceId.get(result.matchedTitle);
+      if (!matchedSourceId) {
+        // Find it in the in-memory array
+        const inMemoryMatch = uniqueArticles.find(a => a.title === result.matchedTitle);
+        if (inMemoryMatch) matchedSourceId = inMemoryMatch.source_id;
+      }
+      const matchedSource = activeSources.find(s => s.id === matchedSourceId)?.name || 'Unknown';
+
       // Log to DB for admin dashboard
       await supabase.from('duplicate_logs').insert({
         dropped_title: article.title,
         matched_title: result.matchedTitle,
         method: result.method,
-        score: result.score
+        score: result.score,
+        dropped_source: droppedSource,
+        matched_source: matchedSource
       });
       
       // Add to set to prevent logging this exact title again in the same batch

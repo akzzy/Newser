@@ -445,8 +445,14 @@ export default function AdminDashboard() {
                         month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
                       })}
                     </td>
-                    <td style={{ maxWidth: '300px', color: '#ef4444' }}>{log.dropped_title}</td>
-                    <td style={{ maxWidth: '300px', color: '#10b981' }}>{log.matched_title}</td>
+                    <td style={{ maxWidth: '300px', color: '#ef4444' }}>
+                      {log.dropped_source && <div className={styles.sourceBadge} style={{ marginBottom: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}>{log.dropped_source}</div>}
+                      {log.dropped_title}
+                    </td>
+                    <td style={{ maxWidth: '300px', color: '#10b981' }}>
+                      {log.matched_source && <div className={styles.sourceBadge} style={{ marginBottom: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>{log.matched_source}</div>}
+                      {log.matched_title}
+                    </td>
                     <td>
                       <span className={styles.badge}>{log.score?.toFixed(2)}</span>
                     </td>

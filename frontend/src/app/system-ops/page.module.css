@@ -371,6 +371,17 @@
 
 .error { color: #ef4444; margin-bottom: 1rem; font-size: 0.9rem; }
 
+.sourceBadge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 0.5rem;
+}
+
 /* Modal */
 .modalOverlay {
   position: fixed;
