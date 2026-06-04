@@ -114,7 +114,7 @@ export async function fetchFeed(source, maxAgeHours = 24) {
       articles.push({
         title: cleanTitle,
         original_content: cleanContent.substring(0, 5000), // Cap at 5000 chars for AI input
-        url: item.link || item.guid,
+        url: (item.link || item.guid || '').trim(),
         image_url: extractImageUrl(item),
         author: item.creator || item.author || item['dc:creator'] || null,
         published_at: item.isoDate || item.pubDate || new Date().toISOString(),
