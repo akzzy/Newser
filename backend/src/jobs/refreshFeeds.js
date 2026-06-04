@@ -168,12 +168,27 @@ async function refreshAllFeeds(fastify) {
 
   // ── Phase 2: Exact URL deduplication against DB ──
   const urls = allFetched.map(a => a.url).filter(Boolean);
-  const { data: existingArticles } = await supabase
-    .from('articles')
-    .select('url')
-    .in('url', urls);
+  const existingUrls = new Set();
+  
+  // Chunk URLs into batches of 50 to prevent Supabase 'Bad Request' (URI Too Long) errors
+  const chunkSize = 50;
+  for (let i = 0; i < urls.length; i += chunkSize) {
+    const chunk = urls.slice(i, i + chunkSize);
+    const { data: existingArticles, error } = await supabase
+      .from('articles')
+      .select('url')
+      .in('url', chunk);
+      
+    if (error) {
+      logger.error(`[RefreshFeeds] Phase 2 DB Error: ${error.message}`);
+      continue;
+    }
+    
+    if (existingArticles) {
+      existingArticles.forEach(a => existingUrls.add(a.url));
+    }
+  }
 
-  const existingUrls = new Set((existingArticles || []).map(a => a.url));
   const newArticles = allFetched.filter(a => a.url && !existingUrls.has(a.url));
 
   if (newArticles.length === 0) {
