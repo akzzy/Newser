@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { sources } from '../config/sources.js';
 import { fetchFeed } from '../services/feedFetcher.js';
-import { scrapeArticle } from '../services/scraper.js';
+import { scrapeArticle, pingScraper } from '../services/scraper.js';
 import { rewriteArticle } from '../services/aiRewriter.js';
 import { checkDuplicate } from '../services/deduplicator.js';
 
@@ -134,6 +134,10 @@ async function refreshAllFeeds(fastify) {
   // Fetch DB sources to map source_id to name for logging
   const { data: dbSources } = await supabase.from('sources').select('id, name');
   const dbSourceIdToName = new Map((dbSources || []).map(s => [s.id, s.name]));
+
+  // Ping scraper microservice to prevent Render from putting it to sleep
+  // We do this immediately so it can wake up while Phase 1 is running
+  pingScraper().catch(() => {});
 
   // ── Phase 1: Fetch all feeds into a single article pool ──
   const activeSources = sources.filter(s => s.is_active);
