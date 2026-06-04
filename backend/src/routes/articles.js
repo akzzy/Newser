@@ -215,22 +215,7 @@ export async function articleRoutes(fastify) {
     }
 
     // Explicitly exclude blocked sources and categories at DB level
-    // so pagination doesn't shrink on the frontend
-    const { blocked_sources, blocked_categories } = request.query;
-    if (blocked_sources) {
-      const bSources = blocked_sources.split(',').map(s => s.trim()).filter(Boolean);
-      if (bSources.length > 0) {
-        query = query.not('sources.slug', 'in', `(${bSources.map(s => `"${s}"`).join(',')})`);
-      }
-    }
-    if (blocked_categories) {
-      const bCats = blocked_categories.split(',').map(s => s.trim()).filter(Boolean);
-      if (bCats.length > 0) {
-        // Since ai_category can be loosely matched, we use standard not-in for exact matches
-        // Supabase 'in' operator syntax for arrays: .not('ai_category', 'in', '("Tech","Auto")')
-        query = query.not('ai_category', 'in', `(${bCats.map(s => `"${s}"`).join(',')})`);
-      }
-    }
+    // ONLY for "For You" feed (handled above). Other feeds ignore these blocks.
 
     const { data, error, count } = await query;
 
