@@ -17,6 +17,9 @@ export default function AdminDashboard() {
   const [filter, setFilter] = useState('all');
   const [currentTab, setCurrentTab] = useState<'overview' | 'sources'>('overview');
   const [sourcesData, setSourcesData] = useState<any[]>([]);
+  const [selectedSource, setSelectedSource] = useState<any>(null);
+  const [sourceArticles, setSourceArticles] = useState<any[]>([]);
+  const [loadingArticles, setLoadingArticles] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const limit = 20;
   
@@ -174,6 +177,39 @@ export default function AdminDashboard() {
     }
   };
 
+  const resolveAlert = async (id: string) => {
+    try {
+      const res = await fetch(`${apiBase}/api/admin/alerts/${id}/resolve`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${password}` }
+      });
+      if (res.ok) {
+        fetchData(); // Refresh the alerts
+      }
+    } catch (err) {
+      console.error('Failed to resolve alert', err);
+    }
+  };
+
+  const handleSourceClick = async (source: any) => {
+    setSelectedSource(source);
+    setLoadingArticles(true);
+    setSourceArticles([]);
+    try {
+      const res = await fetch(`${apiBase}/api/admin/sources/${source.id}/articles`, {
+        headers: { 'Authorization': `Bearer ${password}` }
+      });
+      const json = await res.json();
+      if (json.articles) {
+        setSourceArticles(json.articles);
+      }
+    } catch (err) {
+      console.error('Failed to fetch source articles', err);
+    } finally {
+      setLoadingArticles(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className={styles.loginContainer}>
@@ -231,6 +267,35 @@ export default function AdminDashboard() {
 
       {error && <div className={styles.error}>{error}</div>}
 
+      {/* System Alerts Banner */}
+      {data?.systemAlerts && data.systemAlerts.length > 0 && (
+        <div className={styles.alertsContainer} style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
+          <h3 style={{ margin: '0 0 1rem 0', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.2rem' }}>⚠️</span> System Alerts ({data.systemAlerts.length})
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+            {data.systemAlerts.map((alert: any) => (
+              <div key={alert.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>
+                <div>
+                  <div style={{ color: '#fca5a5', fontWeight: 600, fontSize: '0.9rem', marginBottom: '4px', textTransform: 'uppercase' }}>{alert.type.replace('_', ' ')}</div>
+                  <div style={{ color: 'white', fontSize: '0.95rem' }}>{alert.message}</div>
+                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', marginTop: '4px' }}>
+                    {alert.source?.name ? `Source: ${alert.source.name} • ` : ''}
+                    {new Date(alert.created_at).toLocaleString()}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => resolveAlert(alert.id)}
+                  style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {currentTab === 'sources' && (
         <div className={styles.sourcesContainer}>
           <div className={styles.sourcesStatusBar}>
@@ -266,7 +331,7 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {sourcesData.map(source => (
-                  <tr key={source.id}>
+                  <tr key={source.id} onClick={() => handleSourceClick(source)} style={{ cursor: 'pointer' }} className={styles.sourceRow}>
                     <td>
                       <div className={`${styles.statusDot} ${styles['status' + source.status]}`} title={source.status} />
                     </td>
@@ -570,6 +635,68 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Source Drill Down Modal */}
+      {selectedSource && (
+        <div className={styles.modalOverlay} onClick={() => setSelectedSource(null)}>
+          <div className={styles.modalContent} style={{ maxWidth: '900px', width: '90%', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: selectedSource.color }}></div>
+                {selectedSource.name} Articles
+              </h2>
+              <button onClick={() => setSelectedSource(null)} className={styles.actionBtn}>Close</button>
+            </div>
+            
+            <div style={{ overflowY: 'auto', flex: 1, paddingRight: '10px' }}>
+              {loadingArticles ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.5)' }}>Loading articles...</div>
+              ) : sourceArticles.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.5)' }}>No articles found for this source.</div>
+              ) : (
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Method</th>
+                      <th>Original Title</th>
+                      <th>AI Rewritten Title</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sourceArticles.map(article => (
+                      <tr key={article.id}>
+                        <td style={{ whiteSpace: 'nowrap', fontSize: '0.85rem' }}>
+                          {new Date(article.rewritten_at || article.fetched_at).toLocaleString(undefined, {
+                            month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+                          })}
+                        </td>
+                        <td>
+                          {article.is_scraped ? (
+                            <span className={styles.sourceBadge} style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#c4b5fd', border: '1px solid rgba(139, 92, 246, 0.3)' }}>Scraped</span>
+                          ) : (
+                            <span className={styles.sourceBadge} style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#93c5fd', border: '1px solid rgba(59, 130, 246, 0.3)' }}>RSS XML</span>
+                          )}
+                        </td>
+                        <td style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', maxWidth: '250px' }}>
+                          {article.title}
+                        </td>
+                        <td style={{ color: 'white', fontWeight: 500, maxWidth: '250px' }}>
+                          {article.title_hook || <span style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.3)' }}>Pending...</span>}
+                        </td>
+                        <td>
+                          <span className={`${styles.badge} ${styles[article.rewrite_status]}`}>{article.rewrite_status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </div>
       )}
