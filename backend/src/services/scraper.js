@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 /**
  * Scrape article content from a web page when RSS content is insufficient.
  * Now routes through our stealth Puppeteer microservice on Render.
