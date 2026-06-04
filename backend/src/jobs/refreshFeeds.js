@@ -151,7 +151,9 @@ async function refreshAllFeeds(fastify) {
     duplicates_dropped: 0,
     ai_rewritten: 0,
     ai_failed: 0,
-    source_breakdown: {}
+    source_breakdown: {
+      scraper_stats: { attempted: 0, succeeded: 0 }
+    }
   };
 
   for (const source of activeSources) {
@@ -321,12 +323,14 @@ async function refreshAllFeeds(fastify) {
     const charCount = article.original_content ? article.original_content.length : 0;
     
     if (charCount < 1000 || !article.image_url) {
+      cycleStats.source_breakdown.scraper_stats.attempted++;
       try {
         const source = activeSources.find(s => s.id === article.source_id);
         const scraped = await scrapeArticle(article.url, source);
         if (scraped.content.length > article.original_content.length) {
           article.original_content = scraped.content;
           article.is_scraped = true; // Mark as successfully scraped
+          cycleStats.source_breakdown.scraper_stats.succeeded++;
         }
         // Always prefer the scraped image (og:image) as it is usually high-res, 
         // whereas RSS feeds often provide tiny pixelated thumbnails
