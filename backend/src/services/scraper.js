@@ -43,3 +43,16 @@ export async function scrapeArticle(url, sourceConfig = null) {
     throw error;
   }
 }
+
+/**
+ * Ping the scraper service to keep it awake on free tiers (e.g. Render).
+ */
+export async function pingScraper() {
+  try {
+    const serviceUrl = process.env.SCRAPER_SERVICE_URL || 'http://localhost:4000';
+    // Just a quick fire-and-forget fetch to the health endpoint with a short timeout
+    await fetch(`${serviceUrl}/health`, { signal: AbortSignal.timeout(5000) });
+  } catch (err) {
+    // Ignore errors, we just want to wake it up
+  }
+}
