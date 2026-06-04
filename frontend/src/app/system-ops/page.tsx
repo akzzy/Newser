@@ -445,17 +445,32 @@ export default function AdminDashboard() {
                     <tr style={{ background: 'rgba(0,0,0,0.3)' }}>
                       <td colSpan={7} style={{ padding: '1rem 2rem' }}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-                          {Object.entries(run.source_breakdown).map(([sourceName, stats]: any) => (
-                            <div key={sourceName} style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '8px', minWidth: '150px' }}>
-                              <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: 'white' }}>{sourceName}</div>
-                              <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between' }}>
-                                <span>Fetched:</span> <span>{stats.fetched}</span>
+                          {Object.entries(run.source_breakdown).map(([sourceName, stats]: any) => {
+                            if (sourceName === 'scraper_stats') {
+                              return (
+                                <div key={sourceName} style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '0.5rem 1rem', borderRadius: '8px', minWidth: '150px' }}>
+                                  <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#93c5fd' }}>Render Scraper</div>
+                                  <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Sent:</span> <span>{stats.attempted}</span>
+                                  </div>
+                                  <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Succeeded:</span> <span style={{ color: stats.succeeded > 0 ? '#6ee7b7' : 'inherit' }}>{stats.succeeded}</span>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div key={sourceName} style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '8px', minWidth: '150px' }}>
+                                <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: 'white' }}>{sourceName}</div>
+                                <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between' }}>
+                                  <span>Fetched:</span> <span>{stats.fetched}</span>
+                                </div>
+                                <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between' }}>
+                                  <span>Inserted:</span> <span style={{ color: stats.inserted > 0 ? '#6ee7b7' : 'inherit' }}>{stats.inserted}</span>
+                                </div>
                               </div>
-                              <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between' }}>
-                                <span>Inserted:</span> <span style={{ color: stats.inserted > 0 ? '#6ee7b7' : 'inherit' }}>{stats.inserted}</span>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                           {Object.keys(run.source_breakdown).length === 0 && (
                             <div style={{ color: 'rgba(255,255,255,0.5)' }}>No source data recorded for this cycle.</div>
                           )}
