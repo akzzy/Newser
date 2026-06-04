@@ -97,8 +97,9 @@ export default function Feed() {
   // Create a memoized filtered list to ensure scroll triggers fire correctly 
   // even if local tag blocking reduces the visible list length.
   const filteredArticles = useMemo(() => {
+    if (sort !== 'foryou') return articles;
     return articles.filter((a) => !isArticleBlocked(a));
-  }, [articles, isArticleBlocked]);
+  }, [articles, isArticleBlocked, sort]);
 
   // Track current card via scroll position
   const handleScroll = useCallback(() => {
