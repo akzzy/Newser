@@ -316,7 +316,11 @@ async function refreshAllFeeds(fastify) {
   // ── Phase 4: Scrape articles with insufficient content or missing images ──
   for (const article of uniqueArticles) {
     article.is_scraped = false; // Default
-    if (article.original_content.length < 200 || !article.image_url) {
+    
+    // Check word count instead of character count
+    const wordCount = article.original_content ? article.original_content.trim().split(/\s+/).length : 0;
+    
+    if (wordCount < 200 || !article.image_url) {
       try {
         const source = activeSources.find(s => s.id === article.source_id);
         const scraped = await scrapeArticle(article.url, source);
