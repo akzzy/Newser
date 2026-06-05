@@ -49,8 +49,33 @@ async function fetchSourceArticles(supabase, source, logger) {
  * Processes in small batches with delays to respect rate limits.
  */
 async function rewritePendingArticles(supabase, logger, limit = 10) {
-  // Only rewrite articles from the last 7 days (prevents old stuck articles from being permanently ignored)
-  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // Only rewrite articles from the last 24 hours
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  // Alert system for old stuck articles
+  const { count: stuckCount, error: stuckErr } = await supabase
+    .from('articles')
+    .select('*', { count: 'exact', head: true })
+    .in('rewrite_status', ['pending', 'failed'])
+    .lt('published_at', cutoff);
+
+  if (!stuckErr && stuckCount > 0) {
+    // Check if we already alerted about this recently to avoid spamming the dashboard every 15 minutes
+    const { data: existingAlerts } = await supabase
+      .from('system_alerts')
+      .select('id')
+      .eq('type', 'ai_error')
+      .eq('is_resolved', false)
+      .ilike('message', '%stuck in pending%')
+      .limit(1);
+
+    if (!existingAlerts || existingAlerts.length === 0) {
+      await supabase.from('system_alerts').insert({
+        type: 'ai_error',
+        message: `There are ${stuckCount} articles older than 24 hours that are stuck in pending/failed AI rewrite.`
+      });
+    }
+  }
 
   const { data: pendingArticles, error } = await supabase
     .from('articles')
