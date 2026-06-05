@@ -17,9 +17,25 @@ export async function scrapeArticle(url, sourceConfig = null) {
       return await scrapeWithRender(url, sourceConfig);
     }
 
-    // Default fast route: use lightweight local extractor
+    // Default fast route: use lightweight local extractor with spoofed browser headers
     console.log(`[Scraper] Using fast local extractor for ${url}...`);
-    const extracted = await extract(url);
+    
+    // Some sites (like CBS Sports) reject default Node.js fetch headers with 406 Not Acceptable.
+    // By manually fetching with browser-like headers, we bypass basic server firewalls.
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const html = await response.text();
+    const extracted = await extract(html, url); // Pass HTML and original URL
     
     if (extracted && extracted.content) {
       let content = extracted.content;
