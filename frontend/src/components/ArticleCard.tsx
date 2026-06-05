@@ -63,6 +63,8 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   const [imgError, setImgError] = useState(false);
   const openDrawer = useArticleStore((s) => s.openDrawer);
   const guestId = useArticleStore((s) => s.guestId);
+  const setCategory = useArticleStore((s) => s.setCategory);
+  const setSource = useArticleStore((s) => s.setSource);
 
   useEffect(() => {
     // No JS extraction needed! Handled purely by CSS backdrop glow
@@ -94,7 +96,21 @@ export default function ArticleCard({ article }: ArticleCardProps) {
     } else {
       await navigator.clipboard.writeText(article.original_url);
     }
-  }, [article]);
+  }, [article, guestId]);
+
+  const handleCategoryClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerHaptic('light');
+    setSource('all');
+    setCategory(article.ai_category);
+  }, [article.ai_category, setCategory, setSource]);
+
+  const handleSourceClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerHaptic('light');
+    setCategory('all');
+    setSource(article.source?.slug || 'all');
+  }, [article.source?.slug, setCategory, setSource]);
 
   const cardStyle = {
     '--hero-image': article.image_url ? `url('${article.image_url}')` : 'none',
@@ -134,7 +150,11 @@ export default function ArticleCard({ article }: ArticleCardProps) {
 
         {/* Category badge */}
         {article.ai_category && (
-          <div className={styles.categoryBadge}>
+          <div 
+            className={styles.categoryBadge} 
+            onClick={handleCategoryClick}
+            style={{ cursor: 'pointer', zIndex: 10 }}
+          >
             <span className={styles.categoryDot} />
             {article.ai_category}
           </div>
@@ -147,7 +167,11 @@ export default function ArticleCard({ article }: ArticleCardProps) {
         <div className={styles.actionRow} onClick={(e) => e.stopPropagation()}>
           {/* Source info */}
           {article.source && (
-            <div className={styles.sourceInfo}>
+            <div 
+              className={styles.sourceInfo} 
+              onClick={handleSourceClick}
+              style={{ cursor: 'pointer', zIndex: 10 }}
+            >
               {article.source.logo_url && (
                 <img
                   className={styles.sourceLogo}
@@ -156,7 +180,9 @@ export default function ArticleCard({ article }: ArticleCardProps) {
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               )}
-              <span className={styles.sourceName}>{article.source.name}</span>
+              <span className={styles.sourceName} style={{ textDecoration: 'underline', textDecorationColor: 'transparent', transition: 'text-decoration-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.textDecorationColor = 'rgba(255,255,255,0.5)'} onMouseLeave={(e) => e.currentTarget.style.textDecorationColor = 'transparent'}>
+                {article.source.name}
+              </span>
               <span className={styles.sourceDivider} />
               <span className={styles.sourceTime}>{timeAgo(article.published_at)}</span>
             </div>
