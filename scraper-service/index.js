@@ -12,24 +12,35 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 4000;
 
-// Global browser instance to save massive CPU overhead on Render free tier
-let globalBrowser = null;
+// Global browser promise to prevent race conditions on cold starts
+let browserPromise = null;
 
 async function getBrowser() {
-  if (!globalBrowser || !globalBrowser.connected) {
+  if (!browserPromise) {
     console.log('[Scraper] Launching new global Chrome instance...');
-    globalBrowser = await puppeteer.launch({
+    browserPromise = puppeteer.launch({
       headless: 'new',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
+        '--single-process',
         '--no-zygote',
       ]
+    }).then(browser => {
+      browser.on('disconnected', () => {
+        console.log('[Scraper] Browser disconnected. Resetting...');
+        browserPromise = null;
+      });
+      return browser;
+    }).catch(err => {
+      console.error('[Scraper] Failed to launch browser:', err);
+      browserPromise = null;
+      throw err;
     });
   }
-  return globalBrowser;
+  return browserPromise;
 }
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
