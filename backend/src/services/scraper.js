@@ -25,9 +25,20 @@ export async function scrapeArticle(url, sourceConfig = null) {
       let content = extracted.content;
       // Cap at 5000 chars for AI context limits
       content = content.substring(0, 5000);
+      let imageUrl = extracted.image || null;
+      
+      // Clean up image URLs (e.g. remove ?w=150 from TechCrunch images to get full quality)
+      if (imageUrl) {
+        // Strip out resizing query parameters like ?w=150 or ?resize=...
+        // By removing everything after the '?' for known image extensions, we get the original high-res image.
+        if (imageUrl.includes('?')) {
+           imageUrl = imageUrl.split('?')[0];
+        }
+      }
+
       return {
         content: content,
-        image_url: extracted.image || null
+        image_url: imageUrl
       };
     } else {
       console.log(`[Scraper] Fast extractor returned null for ${url}. Falling back to Render...`);
