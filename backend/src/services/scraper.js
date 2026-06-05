@@ -55,8 +55,8 @@ export async function scrapeArticle(url, sourceConfig = null) {
     if (extracted && extracted.content) {
       // Strip HTML to get clean plain text before capping length
       let content = stripHtml(extracted.content);
-      // Cap at 5000 chars for AI context limits
-      content = content.substring(0, 5000);
+      // Cap at 15000 chars for AI context limits (ensures full article)
+      content = content.substring(0, 15000);
       let imageUrl = extracted.image || null;
       
       // Clean up image URLs (e.g. remove ?w=150 from TechCrunch images to get full quality)
@@ -112,7 +112,7 @@ async function scrapeWithRender(url, sourceConfig) {
     
     let content = data.content;
     if (content) {
-      content = content.substring(0, 5000);
+      content = content.substring(0, 15000);
     }
 
     return {
