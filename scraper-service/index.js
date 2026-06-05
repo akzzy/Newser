@@ -12,6 +12,26 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 4000;
 
+// Global browser instance to save massive CPU overhead on Render free tier
+let globalBrowser = null;
+
+async function getBrowser() {
+  if (!globalBrowser || !globalBrowser.isConnected()) {
+    console.log('[Scraper] Launching new global Chrome instance...');
+    globalBrowser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-zygote',
+      ]
+    });
+  }
+  return globalBrowser;
+}
+
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.post('/scrape', async (req, res) => {
@@ -21,24 +41,12 @@ app.post('/scrape', async (req, res) => {
     return res.status(400).json({ error: 'Missing URL' });
   }
 
-  let browser;
+  let page = null;
   try {
-    console.log(`[Scrape] Starting browser for: ${url}`);
+    const browser = await getBrowser();
+    console.log(`[Scrape] Opening new page for: ${url}`);
     
-    // Launch browser in ultra-lightweight mode
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-        '--no-zygote',
-      ]
-    });
-
-    const page = await browser.newPage();
+    page = await browser.newPage();
 
     // Block unnecessary resources (images, fonts, css) to save memory and bandwidth
     await page.setRequestInterception(true);
@@ -121,9 +129,9 @@ app.post('/scrape', async (req, res) => {
     console.error(`[Scrape] Error for ${url}:`, error.message);
     res.status(500).json({ error: error.message });
   } finally {
-    if (browser) {
-      await browser.close();
-      console.log(`[Scrape] Browser closed`);
+    if (page) {
+      await page.close().catch(e => console.error('Error closing page:', e.message));
+      console.log(`[Scrape] Page closed`);
     }
   }
 });
