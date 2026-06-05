@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 4000;
 let globalBrowser = null;
 
 async function getBrowser() {
-  if (!globalBrowser || !globalBrowser.isConnected()) {
+  if (!globalBrowser || !globalBrowser.connected) {
     console.log('[Scraper] Launching new global Chrome instance...');
     globalBrowser = await puppeteer.launch({
       headless: 'new',
