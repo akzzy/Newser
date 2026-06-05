@@ -1,8 +1,49 @@
+import { extract } from '@extractus/article-extractor';
+
+// List of source names that strictly require the Render microservice to bypass Cloudflare
+const RENDER_SOURCES = [];
+
 /**
  * Scrape article content from a web page when RSS content is insufficient.
- * Now routes through our stealth Puppeteer microservice on Render.
+ * Uses lightweight extractus by default, falls back to Render microservice for stubborn sites.
  */
 export async function scrapeArticle(url, sourceConfig = null) {
+  try {
+    const sourceName = sourceConfig?.name;
+    
+    // Check if this source MUST be scraped via Render
+    if (RENDER_SOURCES.includes(sourceName)) {
+      console.log(`[Scraper] ${sourceName} requires Render microservice. Routing there directly...`);
+      return await scrapeWithRender(url, sourceConfig);
+    }
+
+    // Default fast route: use lightweight local extractor
+    console.log(`[Scraper] Using fast local extractor for ${url}...`);
+    const extracted = await extract(url);
+    
+    if (extracted && extracted.content) {
+      let content = extracted.content;
+      // Cap at 5000 chars for AI context limits
+      content = content.substring(0, 5000);
+      return {
+        content: content,
+        image_url: extracted.image || null
+      };
+    } else {
+      console.log(`[Scraper] Fast extractor returned null for ${url}. Falling back to Render...`);
+      return await scrapeWithRender(url, sourceConfig);
+    }
+
+  } catch (error) {
+    console.log(`[Scraper] Fast extractor failed for ${url}: ${error.message}. Falling back to Render...`);
+    return await scrapeWithRender(url, sourceConfig);
+  }
+}
+
+/**
+ * Calls the heavy Puppeteer microservice on Render.
+ */
+async function scrapeWithRender(url, sourceConfig) {
   try {
     const serviceUrl = process.env.SCRAPER_SERVICE_URL || 'http://localhost:4000';
     
@@ -15,8 +56,7 @@ export async function scrapeArticle(url, sourceConfig = null) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      // Wait up to 2 minutes for the microservice to launch Chrome and scrape
-      // Render's free CPU is extremely slow so heavy pages like Wired can take >45s
+      // Wait up to 2 minutes for the microservice
       signal: AbortSignal.timeout(120000)
     });
 
@@ -27,11 +67,8 @@ export async function scrapeArticle(url, sourceConfig = null) {
 
     const data = await response.json();
     
-    // We get markdown straight from the microservice!
     let content = data.content;
-    
     if (content) {
-      // Cap at 5000 chars for AI context limits
       content = content.substring(0, 5000);
     }
 
