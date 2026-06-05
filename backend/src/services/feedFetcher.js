@@ -104,7 +104,7 @@ export async function fetchFeed(source, maxAgeHours = 24) {
 
         // Also aggressively filter based on the URL containing promo/coupon keywords
         const urlLower = (item.link || item.guid || '').toLowerCase();
-        if (/(promo-?code|coupon)/.test(urlLower)) {
+        if (/(promo|coupon)/.test(urlLower)) {
           console.log(`[FeedFetcher] Skipping promotional Wired article (URL Match): "${urlLower}"`);
           continue;
         }
