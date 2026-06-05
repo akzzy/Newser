@@ -449,7 +449,7 @@ export default function AdminDashboard() {
                             if (sourceName === 'scraper_stats') {
                               return (
                                 <div key={sourceName} style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '0.5rem 1rem', borderRadius: '8px', minWidth: '150px' }}>
-                                  <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#93c5fd' }}>Render Scraper</div>
+                                  <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#93c5fd' }}>Extractus Scraper</div>
                                   <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between' }}>
                                     <span>Sent:</span> <span>{stats.attempted}</span>
                                   </div>
