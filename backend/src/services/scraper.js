@@ -1,5 +1,20 @@
 import { extract } from '@extractus/article-extractor';
 
+// Helper to strip HTML tags so we send clean text to the AI (just like our old markdown scraper did)
+function stripHtml(html) {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // List of source names that strictly require the Render microservice to bypass Cloudflare
 const RENDER_SOURCES = [];
 
@@ -38,7 +53,8 @@ export async function scrapeArticle(url, sourceConfig = null) {
     const extracted = await extract(html, url); // Pass HTML and original URL
     
     if (extracted && extracted.content) {
-      let content = extracted.content;
+      // Strip HTML to get clean plain text before capping length
+      let content = stripHtml(extracted.content);
       // Cap at 5000 chars for AI context limits
       content = content.substring(0, 5000);
       let imageUrl = extracted.image || null;
