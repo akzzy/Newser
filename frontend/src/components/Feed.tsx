@@ -47,6 +47,7 @@ export default function Feed() {
   }, [initializeGuestId, initializePreferences]);
 
   const feedRef = useRef<HTMLDivElement>(null);
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
   
   // Pull to refresh state
   const [ptrStartY, setPtrStartY] = useState(0);
@@ -58,6 +59,13 @@ export default function Feed() {
   useEffect(() => {
     fetchCategories().then(setCategories).catch(console.error);
   }, []);
+
+  // Ensure category bar scrolls to show the active pill when category/source changes
+  useEffect(() => {
+    if (categoryScrollRef.current) {
+      categoryScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+    }
+  }, [category, source]);
 
   // Restore scroll position on mount, and defeat browser scroll anchoring on refresh
   const topArticleId = articles[0]?.id;
@@ -237,7 +245,7 @@ export default function Feed() {
       {/* Category tabs */}
       {categories.length > 1 && (
         <nav className={styles.categoryBar}>
-          <div className={styles.categoryScroll}>
+          <div className={styles.categoryScroll} ref={categoryScrollRef}>
             {categories.map((cat) => {
               if (cat === 'all' && !hasCompletedOnboarding) return null;
               
