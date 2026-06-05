@@ -98,7 +98,14 @@ export async function fetchFeed(source, maxAgeHours = 24) {
 
         // If it contains promo/coupon keywords AND a month name, it's definitely a monthly coupon post
         if (isPromo && hasMonth) {
-          console.log(`[FeedFetcher] Skipping promotional Wired article: "${item.title}"`);
+          console.log(`[FeedFetcher] Skipping promotional Wired article (Title Match): "${item.title}"`);
+          continue;
+        }
+
+        // Also aggressively filter based on the URL containing promo/coupon keywords
+        const urlLower = (item.link || item.guid || '').toLowerCase();
+        if (/(promo-?code|coupon)/.test(urlLower)) {
+          console.log(`[FeedFetcher] Skipping promotional Wired article (URL Match): "${urlLower}"`);
           continue;
         }
       }
