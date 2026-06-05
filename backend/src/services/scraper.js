@@ -53,8 +53,17 @@ export async function scrapeArticle(url, sourceConfig = null) {
     const extracted = await extract(html, url); // Pass HTML and original URL
     
     if (extracted && extracted.content) {
+      let htmlContent = extracted.content;
+      
+      // If an <article> tag exists, only keep the HTML from that point forward.
+      // This brilliantly skips affiliate disclaimers, author bios, and read times that appear before the actual article text!
+      const articleMatch = htmlContent.match(/<article[^>]*>/i);
+      if (articleMatch) {
+         htmlContent = htmlContent.substring(articleMatch.index);
+      }
+
       // Strip HTML to get clean plain text before capping length
-      let content = stripHtml(extracted.content);
+      let content = stripHtml(htmlContent);
       // Cap at 15000 chars for AI context limits (ensures full article)
       content = content.substring(0, 15000);
       let imageUrl = extracted.image || null;
