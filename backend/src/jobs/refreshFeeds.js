@@ -49,8 +49,8 @@ async function fetchSourceArticles(supabase, source, logger) {
  * Processes in small batches with delays to respect rate limits.
  */
 async function rewritePendingArticles(supabase, logger, limit = 10) {
-  // Only rewrite articles from the last 24 hours
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  // Only rewrite articles from the last 7 days (prevents old stuck articles from being permanently ignored)
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const { data: pendingArticles, error } = await supabase
     .from('articles')
