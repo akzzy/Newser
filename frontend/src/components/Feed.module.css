@@ -193,3 +193,24 @@
     transform: rotate(360deg);
   }
 }
+
+/* ================================================
+   Desktop Overrides
+   ================================================ */
+@media (min-width: 1024px) {
+  /* Hide the Feed's NEWSER logo on desktop because the Discover pane already has one! */
+  .header {
+    display: none;
+  }
+  
+  /* Convert fixed elements to absolute so they are clamped inside the .centerPane bounds */
+  .categoryBar {
+    position: absolute;
+    /* Move it up to the top since the header is hidden */
+    top: calc(16px + env(safe-area-inset-top, 0px));
+  }
+  
+  .scrollIndicator {
+    position: absolute;
+  }
+}
