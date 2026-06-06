@@ -53,7 +53,7 @@
   .centerPane {
     flex: 1.1; /* slightly prioritize Feed */
     min-width: 400px;
-    max-width: 650px; /* Lock Feed pane width so images aren't wildly distorted on ultrawides */
+    max-width: 750px; /* Lock Feed pane width so images aren't wildly distorted on ultrawides */
     height: 100%;
     position: relative;
     border-radius: 24px;
