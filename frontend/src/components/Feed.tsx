@@ -5,7 +5,6 @@ import { useArticleStore } from '@/store/useArticleStore';
 import { fetchArticles, fetchCategories, trackInteraction } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
 import ArticleCard, { ArticleCardSkeleton } from './ArticleCard';
-import ReaderDrawer from './ReaderDrawer';
 import styles from './Feed.module.css';
 
 export default function Feed() {
@@ -354,9 +353,6 @@ export default function Feed() {
           ))
         )}
       </div>
-
-      {/* Reader drawer */}
-      <ReaderDrawer />
     </>
   );
 }

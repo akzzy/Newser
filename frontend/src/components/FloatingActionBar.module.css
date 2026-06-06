@@ -98,3 +98,13 @@
 .actionBtn:active svg {
   transform: scale(0.85);
 }
+
+@media (min-width: 1024px) {
+  .desktopHide {
+    display: none !important;
+  }
+  .barContainer {
+    left: 350px;
+    width: 450px;
+  }
+}

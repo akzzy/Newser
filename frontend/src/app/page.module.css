@@ -1,0 +1,82 @@
+/* Mobile: default */
+.desktopLayout {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.leftPane {
+  display: none;
+}
+
+.rightPane {
+  /* Keep it mounted so ReaderDrawer works, but hide its layout footprint */
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.emptyReaderState {
+  display: none;
+}
+
+.centerPane {
+  height: 100%;
+  width: 100%;
+}
+
+/* Desktop: 3-pane layout */
+@media (min-width: 1024px) {
+  .desktopLayout {
+    display: grid;
+    /* Left: Discover (350px), Center: Feed (max 500px), Right: Reader (the rest) */
+    grid-template-columns: 350px minmax(350px, 450px) 1fr;
+    height: 100%;
+    width: 100%;
+    background: var(--color-bg-black);
+  }
+
+  .leftPane {
+    display: block;
+    height: 100%;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--color-bg-dark);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .centerPane {
+    height: 100%;
+    width: 100%;
+    position: relative;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--color-bg-black);
+  }
+
+  .rightPane {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: var(--color-bg-deep);
+    overflow: hidden;
+  }
+  
+  .emptyReaderState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: rgba(255,255,255,0.4);
+    font-family: var(--font-secondary);
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .emptyReaderIcon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+}

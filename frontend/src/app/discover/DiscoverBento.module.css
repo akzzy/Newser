@@ -215,3 +215,18 @@
   font-weight: 500;
   font-size: 14px;
 }
+
+/* ================================================
+   Desktop Overrides
+   ================================================ */
+@media (min-width: 1024px) {
+  .header {
+    position: absolute;
+  }
+  
+  .vignetteBottom {
+    position: absolute;
+    /* Reduce vignette height slightly on desktop since we don't have a tall bottom bar */
+    height: 100px;
+  }
+}

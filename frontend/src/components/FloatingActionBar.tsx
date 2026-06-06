@@ -101,7 +101,7 @@ export default function FloatingActionBar() {
         {/* Feed Tab */}
         <Link 
           href="/" 
-          className={`${styles.barButton} ${isFeedTab ? styles.expandedPill : styles.iconOnly}`}
+          className={`${styles.barButton} ${styles.desktopHide} ${isFeedTab ? styles.expandedPill : styles.iconOnly}`}
           onClick={handleFeedClick}
         >
           {isFeedTab ? <span className={styles.pillText}>Feed</span> : <Home size={22} />}
@@ -110,7 +110,7 @@ export default function FloatingActionBar() {
         {/* Discover Tab */}
         <Link 
           href="/discover" 
-          className={`${styles.barButton} ${isDiscoverTab ? styles.expandedPill : styles.iconOnly}`}
+          className={`${styles.barButton} ${styles.desktopHide} ${isDiscoverTab ? styles.expandedPill : styles.iconOnly}`}
           onClick={handleTap}
         >
           {isDiscoverTab ? <span className={styles.pillText}>Discover</span> : <Compass size={22} />}
