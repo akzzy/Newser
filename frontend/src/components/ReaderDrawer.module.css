@@ -253,10 +253,33 @@
   font-size: 16px;
 }
 
+/* Wrapper to maintain flex layout for the new animation div */
+.desktopAnimateGroup {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
 /* ================================================
    Desktop (3-Pane Layout overrides)
    ================================================ */
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (min-width: 1024px) {
+  .desktopAnimateGroup {
+    animation: slideUpFade 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+  
   .overlay {
     display: none !important;
   }
@@ -270,15 +293,14 @@
     max-height: 100%;
     border-radius: 0;
     transform: none !important;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
+    opacity: 1 !important; /* Force visible on desktop at all times */
+    pointer-events: auto !important;
+    transition: none;
     background: var(--color-bg-deep);
   }
   
   .drawerOpen {
-    opacity: 1;
-    pointer-events: auto;
+    /* No longer needed on desktop since it's forced open */
   }
   
   .dragHandle {

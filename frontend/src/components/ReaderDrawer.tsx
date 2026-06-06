@@ -57,7 +57,10 @@ function renderMarkdown(md: string): string {
 }
 
 export default function ReaderDrawer() {
-  const { drawerArticle, isDrawerOpen, closeDrawer } = useArticleStore();
+  const { drawerArticle, isDrawerOpen, closeDrawer, articles, currentIndex } = useArticleStore();
+  
+  // Use the explicitly opened article (mobile) or default to the current feed article (desktop auto-sync)
+  const activeArticle = drawerArticle || articles[currentIndex];
   const [startY, setStartY] = useState(0);
   const [currentY, setCurrentY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -173,8 +176,8 @@ export default function ReaderDrawer() {
     closeDrawer();
   }, [closeDrawer]);
 
-  const deepDiveHtml = drawerArticle?.deep_dive_content
-    ? renderMarkdown(drawerArticle.deep_dive_content)
+  const deepDiveHtml = activeArticle?.deep_dive_content
+    ? renderMarkdown(activeArticle.deep_dive_content)
     : '<p>No content available.</p>';
 
   return (
@@ -211,26 +214,26 @@ export default function ReaderDrawer() {
           <div className={styles.dragBar} />
         </div>
 
-        {drawerArticle && (
-          <>
+        {activeArticle && (
+          <div key={activeArticle.id} className={styles.desktopAnimateGroup}>
             {/* Header */}
             <div className={styles.drawerHeader}>
-              {drawerArticle.source && (
+              {activeArticle.source && (
                 <div className={styles.sourceChip}>
-                  {drawerArticle.source.logo_url && (
+                  {activeArticle.source.logo_url && (
                     <img
                       className={styles.sourceChipLogo}
-                      src={drawerArticle.source.logo_url}
+                      src={activeArticle.source.logo_url}
                       alt=""
                     />
                   )}
-                  {drawerArticle.source.name}
+                  {activeArticle.source.name}
                 </div>
               )}
 
-              {drawerArticle.read_time && (
+              {activeArticle.read_time && (
                 <div className={styles.readTimeBadge}>
-                  {drawerArticle.read_time} read
+                  {activeArticle.read_time} read
                 </div>
               )}
 
@@ -258,7 +261,7 @@ export default function ReaderDrawer() {
             {/* Footer with original link */}
             <div className={styles.drawerFooter}>
               <a
-                href={drawerArticle.original_url}
+                href={activeArticle.original_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.originalLink}
@@ -268,7 +271,7 @@ export default function ReaderDrawer() {
                 Read original article
               </a>
             </div>
-          </>
+          </div>
         )}
       </div>
     </>

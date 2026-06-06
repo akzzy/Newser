@@ -29,35 +29,48 @@
 @media (min-width: 1024px) {
   .desktopLayout {
     display: grid;
-    /* Left: Discover (350px), Center: Feed (max 500px), Right: Reader (the rest) */
-    grid-template-columns: 350px minmax(350px, 450px) 1fr;
-    height: 100%;
+    /* Left: Flexible space, Center: Fixed 450px Feed, Right: Flexible space */
+    grid-template-columns: 1fr 450px 1fr;
+    gap: 16px; /* Space between Feed and Article */
+    height: 100dvh;
     width: 100%;
+    padding: 24px 0;
     background: var(--color-bg-black);
+    overflow: hidden;
   }
 
   .leftPane {
     display: block;
+    width: 350px; /* Increased to fit 2 bento columns properly */
     height: 100%;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    margin-left: 24px; /* Margin from the left screen edge */
+    justify-self: start; /* Pin to the far left */
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     background: var(--color-bg-dark);
     position: relative;
     overflow: hidden;
   }
 
   .centerPane {
+    display: block;
+    width: 100%; /* Will exactly fill the 450px column */
     height: 100%;
-    width: 100%;
     position: relative;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     background: var(--color-bg-black);
+    overflow: hidden;
   }
 
   .rightPane {
     display: block;
-    width: 100%;
+    width: auto; /* Let it fill the 1fr column */
     height: 100%;
+    margin-right: 24px; /* Margin from the right screen edge */
     position: relative;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     background: var(--color-bg-deep);
     overflow: hidden;
   }

@@ -104,7 +104,9 @@
     display: none !important;
   }
   .barContainer {
-    left: 350px;
-    width: 450px;
+    left: 50%;
+    margin-left: -225px;
+    width: 100%;
+    max-width: 450px;
   }
 }
