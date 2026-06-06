@@ -70,10 +70,15 @@ export async function scrapeArticle(url, sourceConfig = null) {
       
       // Clean up image URLs (e.g. remove ?w=150 from TechCrunch images to get full quality)
       if (imageUrl) {
-        // Strip out resizing query parameters like ?w=150 or ?resize=...
-        // By removing everything after the '?' for known image extensions, we get the original high-res image.
-        if (imageUrl.includes('?')) {
-           imageUrl = imageUrl.split('?')[0];
+        try {
+          // Instead of blindly stripping the entire query string (which breaks images that REQUIRE tokens),
+          // we only remove known resizing parameters to get the high-res version.
+          const urlObj = new URL(imageUrl);
+          const paramsToRemove = ['w', 'h', 'resize', 'fit', 'crop', 'width', 'height', 'q', 'quality', 'auto', 'format'];
+          paramsToRemove.forEach(p => urlObj.searchParams.delete(p));
+          imageUrl = urlObj.toString();
+        } catch(e) {
+          // If URL parsing fails, just leave it as is
         }
       }
 
