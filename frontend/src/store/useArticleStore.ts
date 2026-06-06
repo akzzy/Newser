@@ -117,11 +117,16 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
     })),
 
   appendArticles: (newArticles, hasMore, userInterests) =>
-    set((state) => ({
-      articles: [...state.articles, ...newArticles],
-      hasMore,
-      userInterests: userInterests || state.userInterests
-    })),
+    set((state) => {
+      const existingIds = new Set(state.articles.map(a => a.id));
+      const uniqueNewArticles = newArticles.filter(a => !existingIds.has(a.id));
+      
+      return {
+        articles: [...state.articles, ...uniqueNewArticles],
+        hasMore,
+        userInterests: userInterests || state.userInterests
+      };
+    }),
 
   setCurrentIndex: (index) => set({ currentIndex: index }),
   setPage: (page) => set({ page }),
