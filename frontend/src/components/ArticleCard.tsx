@@ -72,6 +72,11 @@ export default function ArticleCard({ article, isFocused = false }: ArticleCardP
   }, []);
 
   const handleReadMore = useCallback(() => {
+    // On desktop (>= 1024px), the Reader is permanently open and automatically
+    // syncs to the current scroll index. We don't want to open the mobile overlay
+    // or hard-lock the active article to a click.
+    if (window.innerWidth >= 1024) return;
+    
     triggerHaptic('light');
     openDrawer(article);
     if (guestId) {

@@ -320,6 +320,10 @@
     transition: none;
   }
   
+  .closeBtn {
+    display: none;
+  }
+  
   .markdown {
     opacity: 1;
     transform: none;
