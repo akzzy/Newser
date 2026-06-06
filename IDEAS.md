@@ -23,3 +23,8 @@ This document tracks upcoming feature ideas and architectural upgrades for the N
 **Location:** Discover Page
 **Concept:** A frictionless, animated search bar that lets users instantly find articles about specific topics, companies, or events without needing to navigate through categories.
 - **Mechanism:** Leverages Supabase's full-text search (or pgvector for semantic search) across the `title_hook` and `deep_dive_content` fields. The results are streamed instantly as the user types, maintaining the app's hyper-fast, premium feel.
+
+## 5. "For You" Feed Discovery Quota
+**Location:** Backend Recommendation Engine
+**Concept:** To prevent the user from being trapped in an algorithmic "echo chamber," the For You feed should reserve a strict quota (e.g., 20%) for pure serendipity and discovery.
+- **Mechanism:** Instead of splitting the feed solely into explicit interests (60%) and related interests (40%), mathematically enforce a 50/30/20 split. The final 20% bucket should actively exclude all known user preferences and fetch high-quality news from completely unread categories, allowing the user to naturally discover new topics.

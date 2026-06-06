@@ -24,6 +24,7 @@ export default function Feed() {
     source,
     setSource,
     sort,
+    setSort,
     isDrawerOpen,
     guestId,
     hasCompletedOnboarding,
@@ -65,6 +66,26 @@ export default function Feed() {
       categoryScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
     }
   }, [category, source]);
+
+  // Translate vertical mouse wheel scrolling into horizontal scrolling for category pills
+  useEffect(() => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // If there's no horizontal overflow, let it scroll normally
+      if (el.scrollWidth <= el.clientWidth) return;
+
+      // If user is scrolling vertically, translate to horizontal and prevent page scroll
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [categories.length]); // Re-run when categories are loaded and the element mounts
 
   // Restore scroll position on mount, and defeat browser scroll anchoring on refresh
   const topArticleId = articles[0]?.id;
@@ -207,13 +228,25 @@ export default function Feed() {
     
     // Instant scroll to top before refresh
     feedRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+
+    // If they have completed onboarding, clicking the logo acts as a global "Home" button
+    // It takes them back to the 'For You' feed. Otherwise, it just refreshes their current view.
+    const targetCategory = hasCompletedOnboarding ? 'all' : category;
+    const targetSource = hasCompletedOnboarding ? 'all' : source;
+    const targetSort = hasCompletedOnboarding ? 'foryou' : sort;
+
+    if (hasCompletedOnboarding) {
+      setCategory('all');
+      setSource('all');
+      setSort('foryou');
+    }
     
     // Trigger the pull-to-refresh style load
     if (!isRefreshing) {
       setIsRefreshing(true);
       setPtrOffset(40); // Show the spinner so they know it's loading
       setPage(1);
-      await loadArticles(1, category, source, sort, true);
+      await loadArticles(1, targetCategory, targetSource, targetSort, true);
       triggerHaptic('medium');
       
       // Aggressively defeat Safari/Mobile scroll anchoring
@@ -232,6 +265,15 @@ export default function Feed() {
     }
   };
 
+  // Reorder categories so the active category is right next to "all" (For You)
+  const sortedCategories = useMemo(() => {
+    if (category === 'all' || !categories.includes(category)) {
+      return categories;
+    }
+    const filtered = categories.filter(c => c !== category && c !== 'all');
+    return ['all', category, ...filtered];
+  }, [categories, category]);
+
   return (
     <>
       {/* Fixed header */}
@@ -242,10 +284,10 @@ export default function Feed() {
       </header>
 
       {/* Category tabs */}
-      {categories.length > 1 && (
+      {sortedCategories.length > 1 && (
         <nav className={styles.categoryBar}>
           <div className={styles.categoryScroll} ref={categoryScrollRef}>
-            {categories.map((cat) => {
+            {sortedCategories.map((cat) => {
               if (cat === 'all' && !hasCompletedOnboarding) return null;
               
               if (cat === 'all') {
@@ -348,8 +390,12 @@ export default function Feed() {
           </div>
         ) : (
           // Article cards (filtered by preferences)
-          filteredArticles.map((article) => (
-            <ArticleCard key={article.id} article={article} />
+          filteredArticles.map((article, index) => (
+            <ArticleCard 
+              key={article.id} 
+              article={article} 
+              isFocused={index === currentIndex} 
+            />
           ))
         )}
       </div>

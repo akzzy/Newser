@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useRef, useEffect } from 'react';
 import { useArticleStore } from '@/store/useArticleStore';
 import { triggerHaptic } from '@/lib/haptics';
 import StackedCardGrid, { CardItem } from '@/components/StackedCardGrid';
@@ -34,6 +35,38 @@ const getCategoryIcon = (cat: string) => {
 export default function DiscoverClient({ categories, sources }: { categories: string[], sources: any[] }) {
   const router = useRouter();
   const { setCategory, setSource, setSort, hasCompletedOnboarding } = useArticleStore();
+  const channelsScrollRef = useRef<HTMLDivElement>(null);
+
+  // Translate vertical mouse wheel scrolling into horizontal scrolling for the sources list
+  useEffect(() => {
+    const el = channelsScrollRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // If there's no horizontal overflow, let it scroll normally
+      if (el.scrollWidth <= el.clientWidth) return;
+
+      // If user is scrolling vertically, translate to horizontal and prevent page scroll
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+      }
+    };
+
+    // Must be non-passive to allow preventDefault()
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  const handleLogoClick = () => {
+    triggerHaptic('light');
+    if (hasCompletedOnboarding) {
+      setCategory('all');
+      setSource('all');
+      setSort('foryou');
+    }
+    router.push('/');
+  };
 
   const handleQuickAction = (action: string) => {
     triggerHaptic('medium');
@@ -81,7 +114,13 @@ export default function DiscoverClient({ categories, sources }: { categories: st
       
       {/* Fixed header */}
       <header className={styles.header}>
-        <h1 className={styles.title}>DISCOVER</h1>
+        <button 
+          className={styles.title} 
+          onClick={handleLogoClick}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+        >
+          NEWSER
+        </button>
       </header>
 
       {/* 1. Quick Actions (Grid) */}
@@ -108,7 +147,7 @@ export default function DiscoverClient({ categories, sources }: { categories: st
 
       {/* 2. Publishers Row (Large Icons) */}
       <div className={styles.channelsSection}>
-        <div className={styles.channelsScroll}>
+        <div className={styles.channelsScroll} ref={channelsScrollRef}>
           {sources.map((src) => (
             <div className={styles.channelBadge} key={src.id} onClick={() => handleSourceClick(src.slug)}>
               <img 

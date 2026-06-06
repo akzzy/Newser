@@ -19,6 +19,34 @@
   to { opacity: 1; }
 }
 
+.closeBtn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+  opacity: 0;
+  animation: slideDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.closeBtn:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.closeBtn:active {
+  transform: scale(0.9);
+}
+
 .header {
   margin-top: 40px;
   margin-bottom: 40px;

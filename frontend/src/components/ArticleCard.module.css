@@ -77,6 +77,19 @@
   padding-bottom: calc(var(--space-md) + 75px + env(safe-area-inset-bottom, 0px));
   gap: var(--space-sm); /* Unified gaps between details */
   overflow: hidden; /* Contain ambient glow */
+  transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Base state for unfocused cards: slightly faded and pushed down */
+.contentHidden {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* Active state for focused cards: fully visible and up */
+.contentFocused {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* Ambient Glow using Hero Image (Zero JS/CORS Color Extraction) */
@@ -347,4 +360,34 @@
   width: var(--icon-btn-size);
   height: var(--icon-btn-size);
   border-radius: 50%;
+}
+
+/* ================================================
+   Desktop (3-Pane Layout overrides)
+   ================================================ */
+@media (min-width: 1024px) {
+  .heroImage, .heroImageFallback {
+    aspect-ratio: auto; /* Remove rigid aspect ratio */
+    top: calc(76px + env(safe-area-inset-top, 0px)); /* Halved the gap */
+    height: calc(65% - 76px - env(safe-area-inset-top, 0px)); /* Force exactly 65% height */
+  }
+
+  .headerGradient {
+    display: none;
+  }
+
+  .skeletonImage {
+    height: 65%;
+  }
+
+  .contentArea {
+    top: 65%; /* Start exactly where the image ends */
+    height: 35%; /* Take the remaining 35% space */
+    justify-content: flex-start; /* Normal top-down flow */
+    background: transparent;
+    
+    /* Remove the mask since there's no longer an overlap to hide */
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
 }

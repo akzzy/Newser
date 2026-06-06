@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import FloatingActionBar from '@/components/FloatingActionBar';
 import OnboardingModal from '@/components/OnboardingModal';
 import './globals.css';
 
@@ -32,7 +31,6 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
-        <FloatingActionBar />
         <OnboardingModal />
       </body>
     </html>

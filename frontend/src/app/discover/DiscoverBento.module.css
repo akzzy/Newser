@@ -4,9 +4,15 @@
   height: 100dvh; /* MUST be exactly screen height so it creates a scrollbar */
   max-height: 100dvh;
   overflow-y: auto; /* Let the whole page scroll normally */
+  scrollbar-width: none; /* Firefox: completely hide scrollbar */
   display: flex;
   flex-direction: column;
   gap: 32px;
+}
+
+/* Hide Webkit Scrollbar completely */
+.container::-webkit-scrollbar {
+  display: none;
 }
 
 /* ---- Fixed Header overlay ---- */
@@ -95,7 +101,10 @@
 /* 2. Publishers Row */
 .channelsSection {
   margin: 0 -16px; 
-  padding: 0 16px;
+  
+  /* Create a smooth fade out on the left and right edges */
+  -webkit-mask-image: linear-gradient(to right, transparent 0px, black 16px, black calc(100% - 32px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0px, black 16px, black calc(100% - 32px), transparent 100%);
 }
 
 .channelsScroll {
@@ -103,7 +112,7 @@
   gap: 16px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  padding-bottom: 8px;
+  padding: 0 16px 8px 16px; /* Added horizontal padding inside the scroll container */
 }
 
 .channelsScroll::-webkit-scrollbar {
@@ -220,13 +229,24 @@
    Desktop Overrides
    ================================================ */
 @media (min-width: 1024px) {
+  /* Remove top vignette and unfix the header so it scrolls naturally */
   .header {
-    position: absolute;
+    position: relative;
+    background: transparent;
+    padding: 0 0 0 5px; /* Nudge 5px to the right */
+    margin-bottom: -13px; /* Tighten up the vertical spacing by 5px */
   }
   
+  /* Remove bottom vignette completely */
   .vignetteBottom {
-    position: absolute;
-    /* Reduce vignette height slightly on desktop since we don't have a tall bottom bar */
-    height: 100px;
+    display: none;
+  }
+  
+  /* Adjust container padding since header is no longer fixed */
+  .container {
+    padding-top: 24px;
+    padding-bottom: 24px;
+    height: 100%; /* Fit perfectly into the left pane boundary */
+    max-height: 100%; /* Prevents bottom cutoff so all topics can be scrolled to */
   }
 }

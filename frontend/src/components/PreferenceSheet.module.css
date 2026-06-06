@@ -3,13 +3,14 @@
    ================================================ */
 
 .overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
   z-index: 300;
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
+  border-radius: 24px; /* Match pane radius */
 }
 
 .overlayVisible {
@@ -18,7 +19,7 @@
 }
 
 .sheet {
-  position: fixed;
+  position: absolute;
   bottom: calc(75px + env(safe-area-inset-bottom, 0px));
   left: 0;
   width: 100%;
@@ -415,7 +416,7 @@
 
 /* ---- Toast ---- */
 .toast {
-  position: fixed;
+  position: absolute;
   bottom: 100px;
   left: 50%;
   transform: translateX(-50%) translateY(20px);

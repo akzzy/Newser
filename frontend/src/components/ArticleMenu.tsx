@@ -97,7 +97,7 @@ export default function ArticleMenu({ article }: ArticleMenuProps) {
         </div>
       </div>
 
-      {/* Render PreferenceSheet via Portal so it's outside the scroll container */}
+      {/* Render PreferenceSheet via Portal so it's outside the scroll container but inside the feed pane */}
       {typeof document !== 'undefined' && sheetMode !== null && createPortal(
         <PreferenceSheet
           isOpen={sheetMode !== null}
@@ -105,7 +105,7 @@ export default function ArticleMenu({ article }: ArticleMenuProps) {
           article={article}
           onClose={handleSheetClose}
         />,
-        document.body
+        document.getElementById('feed-pane') || document.body
       )}
     </>
   );

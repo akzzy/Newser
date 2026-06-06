@@ -55,9 +55,10 @@ function ShareIcon() {
 
 interface ArticleCardProps {
   article: Article;
+  isFocused?: boolean;
 }
 
-export default function ArticleCard({ article }: ArticleCardProps) {
+export default function ArticleCard({ article, isFocused = false }: ArticleCardProps) {
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -145,7 +146,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
       <div className={styles.headerGradient} />
 
       {/* Content area */}
-      <div className={styles.contentArea}>
+      <div className={`${styles.contentArea} ${isFocused ? styles.contentFocused : styles.contentHidden}`}>
         <div className={styles.contentGradient} />
 
         {/* Category badge */}

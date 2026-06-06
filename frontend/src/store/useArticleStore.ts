@@ -148,34 +148,45 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
   
   completeOnboarding: async (categories) => {
     const { guestId } = get();
-    if (!guestId || categories.length === 0) return;
+    if (!guestId) return;
     
     try {
-      // Bulk insert to backend
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      await fetch(`${API_BASE}/api/interactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          guest_id: guestId,
-          categories: categories,
-          score: 10
-        })
-      });
+      if (categories.length > 0) {
+        // Bulk insert to backend only if they selected something
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        await fetch(`${API_BASE}/api/interactions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guest_id: guestId,
+            categories: categories,
+            score: 10
+          })
+        });
+      }
       
-      // Save locally
+      // Save locally regardless of if they selected or skipped
       localStorage.setItem('newser_onboarding_complete', 'true');
 
-      set({ 
-        hasCompletedOnboarding: true,
-        showOnboardingPopup: false,
-        sharedLinkMode: null,
-        sort: 'foryou',
-        category: 'all',
-        page: 1,
-        articles: [],
-        currentIndex: 0
-      });
+      if (categories.length > 0) {
+        // They explicitly set preferences, so wipe the current feed and force a fresh 'For You' load
+        set({ 
+          hasCompletedOnboarding: true,
+          showOnboardingPopup: false,
+          sharedLinkMode: null,
+          sort: 'foryou',
+          category: 'all',
+          page: 1,
+          articles: [],
+          currentIndex: 0
+        });
+      } else {
+        // They skipped. Don't ruin their current feed position, just dismiss the popup.
+        set({ 
+          hasCompletedOnboarding: true,
+          showOnboardingPopup: false
+        });
+      }
     } catch (err) {
       console.error('Failed to complete onboarding:', err);
     }

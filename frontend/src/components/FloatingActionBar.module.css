@@ -104,9 +104,11 @@
     display: none !important;
   }
   .barContainer {
+    position: absolute; /* Anchor to .centerPane instead of the viewport */
     left: 50%;
-    margin-left: -225px;
+    transform: translateX(-50%);
     width: 100%;
     max-width: 450px;
+    bottom: 24px; /* Maintain gap from the bottom of the pane */
   }
 }

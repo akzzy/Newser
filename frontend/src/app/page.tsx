@@ -2,6 +2,7 @@ import { fetchCategories, fetchSources } from '@/lib/api';
 import Feed from '@/components/Feed';
 import DiscoverClient from './discover/DiscoverClient';
 import ReaderDrawer from '@/components/ReaderDrawer';
+import FloatingActionBar from '@/components/FloatingActionBar';
 import styles from './page.module.css';
 
 export const revalidate = 0;
@@ -23,7 +24,8 @@ export default async function HomePage() {
       </div>
 
       {/* Center Pane: Feed */}
-      <div className={styles.centerPane}>
+      <div className={styles.centerPane} id="feed-pane">
+        <FloatingActionBar />
         <Feed />
       </div>
 

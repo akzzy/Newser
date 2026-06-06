@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useArticleStore } from '@/store/useArticleStore';
 import { triggerHaptic } from '@/lib/haptics';
 import { fetchCategories } from '@/lib/api';
+import { X } from 'lucide-react';
 import styles from './OnboardingModal.module.css';
 
 export default function OnboardingModal() {
@@ -50,8 +51,25 @@ export default function OnboardingModal() {
     setIsSubmitting(false);
   };
 
+  const handleSkip = async () => {
+    triggerHaptic('medium');
+    setIsSubmitting(true);
+    await completeOnboarding([]);
+    setIsSubmitting(false);
+  };
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    // If they click exactly on the overlay background (not the buttons/text)
+    if (e.target === e.currentTarget) {
+      handleSkip();
+    }
+  };
+
   return (
-    <div className={styles.overlay}>
+    <div className={styles.overlay} onClick={handleOverlayClick}>
+      <button className={styles.closeBtn} onClick={handleSkip} aria-label="Skip" disabled={isSubmitting}>
+        <X size={28} />
+      </button>
       <div className={styles.header}>
         <h1 className={styles.title}>What do you want to read about?</h1>
         <p className={styles.subtitle}>Pick 1 or more topics to build your For You feed.</p>

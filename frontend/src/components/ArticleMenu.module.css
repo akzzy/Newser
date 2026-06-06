@@ -97,3 +97,12 @@
 .menuItemManage {
   color: rgba(255, 255, 255, 0.5);
 }
+
+/* ================================================
+   Desktop Overrides
+   ================================================ */
+@media (min-width: 1024px) {
+  .menuWrapper {
+    top: calc(86px + env(safe-area-inset-top, 0px)); /* Align tightly to the top right of the 76px image */
+  }
+}
