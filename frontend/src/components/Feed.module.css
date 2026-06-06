@@ -213,4 +213,19 @@
   .scrollIndicator {
     position: absolute;
   }
+
+  .feedContainer {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+/* ================================================
+   Ultra-wide & 1440p monitors (Scale up typography)
+   ================================================ */
+@media (min-width: 1921px) {
+  .categoryTab { font-size: 16px; padding: 10px 24px; }
+  .emptyText { font-size: 24px; }
+  .emptySubtext { font-size: 18px; }
+  .emptyIcon { font-size: 64px; }
 }

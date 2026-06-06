@@ -391,3 +391,16 @@
     mask-image: none;
   }
 }
+
+/* ================================================
+   Ultra-wide & 1440p monitors (Scale up typography)
+   ================================================ */
+@media (min-width: 1921px) {
+  .titleHook { font-size: clamp(34px, 2.5vw, 44px); }
+  .categoryBadge { font-size: 14px; padding: 6px 14px; }
+  .sourceName { font-size: 16px; }
+  .sourceTime { font-size: 15px; }
+  .sourceLogo { width: 22px; height: 22px; }
+  .readMoreBtn { font-size: 18px; padding: 12px 28px; }
+  .actionBtn { width: 48px; height: 48px; font-size: 20px; }
+}
