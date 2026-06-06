@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
 import { fetchArticleById, fetchCategories, fetchSources } from '@/lib/api';
 import Feed from '@/components/Feed';
-import DiscoverClient from '../discover/DiscoverClient';
+import DiscoverClient from '../../discover/DiscoverClient';
 import ReaderDrawer from '@/components/ReaderDrawer';
 import FloatingActionBar from '@/components/FloatingActionBar';
 import SingleArticleClient from './SingleArticleClient';
-import styles from '../page.module.css';
+import styles from '../../page.module.css';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
