@@ -28,3 +28,8 @@ This document tracks upcoming feature ideas and architectural upgrades for the N
 **Location:** Backend Recommendation Engine
 **Concept:** To prevent the user from being trapped in an algorithmic "echo chamber," the For You feed should reserve a strict quota (e.g., 20%) for pure serendipity and discovery.
 - **Mechanism:** Instead of splitting the feed solely into explicit interests (60%) and related interests (40%), mathematically enforce a 50/30/20 split. The final 20% bucket should actively exclude all known user preferences and fetch high-quality news from completely unread categories, allowing the user to naturally discover new topics.
+
+## 6. On-The-Fly Image Optimization Proxy
+**Location:** Backend or CDN Level
+**Concept:** Automatically compress and resize massive, multi-megabyte high-res images from source publishers to ensure lightning-fast mobile load times without sacrificing visual quality.
+- **Mechanism:** Implement a lightweight image proxy (or utilize Next.js Image Optimization / Cloudinary). When the frontend requests an article image, the proxy intercepts the request, converts the original heavy image (e.g., PNG/JPG) to a highly compressed modern format like WebP or AVIF, resizes it to fit the device's exact dimensions, and heavily caches the result for instant delivery.

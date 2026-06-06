@@ -222,5 +222,192 @@ export const sources = [
     category: 'automotive',
     fetch_method: 'rss',
     is_active: true
+  },
+  {
+    name: 'The Race',
+    slug: 'the-race',
+    feed_url: 'https://www.the-race.com/rss/',
+    website_url: 'https://www.the-race.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://the-race.com&size=128',
+    color: '#E81C24',
+    category: 'sports',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'Screen Rant',
+    slug: 'screen-rant',
+    feed_url: 'https://screenrant.com/feed/',
+    website_url: 'https://screenrant.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://screenrant.com&size=128',
+    color: '#FF0000',
+    category: 'entertainment',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'The Guardian UK',
+    slug: 'the-guardian-uk',
+    feed_url: 'https://www.theguardian.com/uk/rss',
+    website_url: 'https://www.theguardian.com/uk',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://theguardian.com&size=128',
+    color: '#052962',
+    category: 'world',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'Space Daily',
+    slug: 'space-daily',
+    feed_url: 'https://spacedaily.com/feed/',
+    website_url: 'https://spacedaily.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://spacedaily.com&size=128',
+    color: '#003366',
+    category: 'science',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'BGR',
+    slug: 'bgr',
+    feed_url: 'https://www.bgr.com/feed/',
+    website_url: 'https://www.bgr.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://bgr.com&size=128',
+    color: '#D8232A',
+    category: 'mobile',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'Motorsport F1',
+    slug: 'motorsport-f1',
+    feed_url: 'https://www.motorsport.com/rss/f1/news/',
+    website_url: 'https://www.motorsport.com/f1',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://motorsport.com&size=128',
+    color: '#FF0000',
+    category: 'sports',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'Motorsport MotoGP',
+    slug: 'motorsport-motogp',
+    feed_url: 'https://www.motorsport.com/rss/motogp/news/',
+    website_url: 'https://www.motorsport.com/motogp',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://motorsport.com&size=128',
+    color: '#FF0000',
+    category: 'sports',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'Motorsport WEC',
+    slug: 'motorsport-wec',
+    feed_url: 'https://www.motorsport.com/rss/wec/news/',
+    website_url: 'https://www.motorsport.com/wec',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://motorsport.com&size=128',
+    color: '#FF0000',
+    category: 'sports',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'Motorsport IMSA',
+    slug: 'motorsport-imsa',
+    feed_url: 'https://www.motorsport.com/rss/imsa/news/',
+    website_url: 'https://www.motorsport.com/imsa',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://motorsport.com&size=128',
+    color: '#FF0000',
+    category: 'sports',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'AI News',
+    slug: 'ai-news',
+    feed_url: 'https://www.artificialintelligence-news.com/feed/',
+    website_url: 'https://www.artificialintelligence-news.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://artificialintelligence-news.com&size=128',
+    color: '#00C853',
+    category: 'ai',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'SciTechDaily',
+    slug: 'scitechdaily',
+    feed_url: 'https://scitechdaily.com/feed/',
+    website_url: 'https://scitechdaily.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://scitechdaily.com&size=128',
+    color: '#2E8B57',
+    category: 'science',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'PC Gamer',
+    slug: 'pc-gamer',
+    feed_url: 'https://www.pcgamer.com/feeds.xml',
+    website_url: 'https://www.pcgamer.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://pcgamer.com&size=128',
+    color: '#D42127',
+    category: 'gaming',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'PC Gamer Hardware',
+    slug: 'pc-gamer-hardware',
+    feed_url: 'https://www.pcgamer.com/feeds/tag/hardware/',
+    website_url: 'https://www.pcgamer.com/hardware',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://pcgamer.com&size=128',
+    color: '#D42127',
+    category: 'hardware',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'Tom\'s Hardware',
+    slug: 'toms-hardware',
+    feed_url: 'https://www.tomshardware.com/feeds.xml',
+    website_url: 'https://www.tomshardware.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://tomshardware.com&size=128',
+    color: '#CC0000',
+    category: 'hardware',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'The Hollywood Reporter',
+    slug: 'hollywood-reporter',
+    feed_url: 'https://www.hollywoodreporter.com/feed/rss/',
+    website_url: 'https://www.hollywoodreporter.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://hollywoodreporter.com&size=128',
+    color: '#000000',
+    category: 'entertainment',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'Collider',
+    slug: 'collider',
+    feed_url: 'https://collider.com/feed/',
+    website_url: 'https://collider.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://collider.com&size=128',
+    color: '#F4511E',
+    category: 'entertainment',
+    fetch_method: 'rss',
+    is_active: true
+  },
+  {
+    name: 'BBC Football',
+    slug: 'bbc-football',
+    feed_url: 'https://feeds.bbci.co.uk/sport/football/rss.xml',
+    website_url: 'https://www.bbc.com/sport/football',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://bbc.com&size=128',
+    color: '#FFD230',
+    category: 'sports',
+    fetch_method: 'rss',
+    is_active: true
   }
 ];

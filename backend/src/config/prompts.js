@@ -45,7 +45,7 @@ Structured content for the article reader drawer:
 ### C. category (string)
 Classify into exactly one: "AI", "Mobile", "Startups", "Gaming", "Science",
 "Security", "Software", "Hardware", "Business", "Internet", "Automotive",
-"Politics", "World", "Sports", "Entertainment", "Finance", "Health"
+"Politics", "World", "Sports", "Football", "Motorsport", "Entertainment", "Finance", "Health"
 
 ### D. tags (array of strings)
 Extract 2-5 key entities: company names, product names, technologies mentioned.

@@ -79,7 +79,7 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
 
   const { data: pendingArticles, error } = await supabase
     .from('articles')
-    .select('id, title, original_content')
+    .select('id, title, original_content, url, image_url, source_id')
     .in('rewrite_status', ['pending', 'failed'])
     .gte('published_at', cutoff)
     .order('published_at', { ascending: false })
@@ -102,7 +102,28 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
     const article = pendingArticles[i];
     logger.info(`[AIRewrite] ${i + 1}/${pendingArticles.length}: "${article.title.substring(0, 60)}..."`);
 
-    const aiResult = await rewriteArticle(article.title, article.original_content);
+    let finalContent = article.original_content;
+    let finalImageUrl = article.image_url;
+
+    // Scrape the full article page before passing to AI
+    try {
+      logger.info(`[AIRewrite] Scraping full content from: ${article.url}`);
+      const scraped = await scrapeArticle(article.url);
+      if (scraped && scraped.content && scraped.content.length > 100) {
+        finalContent = scraped.content;
+        
+        // If the scraper found an image and we didn't have one from RSS, save it
+        if (scraped.image_url && !article.image_url) {
+          finalImageUrl = scraped.image_url;
+        }
+      } else {
+        logger.warn(`[AIRewrite] Scraper returned insufficient content, falling back to XML summary.`);
+      }
+    } catch (err) {
+      logger.warn(`[AIRewrite] Scraper failed: ${err.message}. Falling back to XML summary.`);
+    }
+
+    const aiResult = await rewriteArticle(article.title, finalContent);
 
     if (aiResult) {
       const { error: updateErr } = await supabase
@@ -113,6 +134,7 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
           ai_category: aiResult.ai_category,
           ai_tags: aiResult.ai_tags,
           read_time: aiResult.read_time,
+          image_url: finalImageUrl,
           rewrite_status: 'completed',
           rewritten_at: new Date().toISOString()
         })

@@ -86,8 +86,8 @@ export async function fetchFeed(source, maxAgeHours = 24) {
       const rawContent = item['content:encoded'] || item.content || item.contentSnippet || item.summary || '';
       const cleanContent = stripHtml(rawContent);
 
-      // Skip items without meaningful content
-      if (!item.title || cleanContent.length < 50) continue;
+      // Skip items without a title
+      if (!item.title) continue;
 
       const titleLower = item.title.toLowerCase();
 
