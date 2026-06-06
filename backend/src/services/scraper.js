@@ -71,12 +71,17 @@ export async function scrapeArticle(url, sourceConfig = null) {
       // Clean up image URLs (e.g. remove ?w=150 from TechCrunch images to get full quality)
       if (imageUrl) {
         try {
-          // Instead of blindly stripping the entire query string (which breaks images that REQUIRE tokens),
-          // we only remove known resizing parameters to get the high-res version.
           const urlObj = new URL(imageUrl);
-          const paramsToRemove = ['w', 'h', 'resize', 'fit', 'crop', 'width', 'height', 'q', 'quality', 'auto', 'format'];
-          paramsToRemove.forEach(p => urlObj.searchParams.delete(p));
-          imageUrl = urlObj.toString();
+          
+          // WARNING: If the URL contains a cryptographic signature (like The Guardian's &s= or AWS &Expires=),
+          // altering any part of the query string will invalidate the signature and result in a 401/403 error!
+          const hasSignature = ['s', 'sig', 'signature', 'token', 'hmac', 'Expires', 'ExpiresIn'].some(key => urlObj.searchParams.has(key));
+          
+          if (!hasSignature) {
+            const paramsToRemove = ['w', 'h', 'resize', 'fit', 'crop', 'width', 'height', 'q', 'quality', 'auto', 'format'];
+            paramsToRemove.forEach(p => urlObj.searchParams.delete(p));
+            imageUrl = urlObj.toString();
+          }
         } catch(e) {
           // If URL parsing fails, just leave it as is
         }
