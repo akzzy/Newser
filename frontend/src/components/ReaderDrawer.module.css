@@ -302,7 +302,7 @@
     opacity: 1 !important; /* Force visible on desktop at all times */
     pointer-events: auto !important;
     transition: none;
-    background: var(--color-bg-deep);
+    background: transparent;
   }
   
   .drawerOpen {
