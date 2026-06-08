@@ -37,7 +37,7 @@ Pick exactly one: "AI", "Mobile", "Startups", "Gaming", "Science", "Security", "
 Estimated read time of deepDiveContent only. Example: "45 sec" or "1 min".
 
 ## 3. Hard Rules
-- deepDiveContent word count: 220-280 words. Write more, not less. Each bullet point should be 2-3 full sentences, not just a label and 5 words.
+- deepDiveContent word count: 220-350 words, scaled to the source — short news items stay closer to 220, deep analysis pieces go up to 350. Target a 1-2 minute read time. Each bullet point must be 2-3 full sentences of substance, not just a label and 5 words.
 - NEVER add section labels like "Summary:", "Core takeaway:", "Key Points:", "Key Issues:". Start content directly with the first sentence.
 - NEVER fabricate data, statistics, positions, or quotes not present in the source article. If race positions or scores are not in the article text, do not invent them.
 - NEVER add a table just to add structure. A metadata table (Film, Director, Writer) adds zero value -- skip it.
