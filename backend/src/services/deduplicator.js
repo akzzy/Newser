@@ -47,8 +47,8 @@ const SYNONYMS = {
 };
 
 // ── Thresholds ──
-const DEFINITE_DUPLICATE_THRESHOLD = 0.50;  // High confidence — skip AI
-const GRAY_ZONE_THRESHOLD = 0.35;            // Below this — definitely not a dup
+const DEFINITE_DUPLICATE_THRESHOLD = 0.50;  // High confidence — skip AI, drop it
+const GRAY_ZONE_THRESHOLD = 0.50;            // Same as above = no gray zone = AI dedup disabled (re-enable after backlog clears)
 
 // ── NVIDIA API Key Helper ──
 function getApiKey() {
