@@ -39,8 +39,9 @@ Structured content for the article reader drawer:
 3. High-Signal Bullet Points: Complex sequences, causes, or feature sets in
    perfectly spaced bulleted lists. Pre-bold the title of each bullet.
 4. Markdown Tables: If the article contains numerical values, specs, financials,
-   or comparisons, extract into a clean 2-3 column table. If no structured data
-   exists, omit the table entirely.
+   or comparisons, extract into a clean 2-3 column table. You MUST use strict
+   Markdown pipe syntax (e.g., `| Col 1 | Col 2 |\n|---|---|`). Do NOT use tab
+   separation or raw text. If no structured data exists, omit the table entirely.
 
 ### C. category (string)
 Classify into exactly one: "AI", "Mobile", "Startups", "Gaming", "Science",
