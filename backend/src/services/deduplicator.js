@@ -48,7 +48,7 @@ const SYNONYMS = {
 
 // ── Thresholds ──
 const DEFINITE_DUPLICATE_THRESHOLD = 0.50;  // High confidence — skip AI
-const GRAY_ZONE_THRESHOLD = 0.50;            // Below this — definitely not a dup
+const GRAY_ZONE_THRESHOLD = 0.35;            // Below this — definitely not a dup
 
 // ── NVIDIA API Key Helper ──
 function getApiKey() {
