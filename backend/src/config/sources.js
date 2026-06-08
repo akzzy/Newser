@@ -125,17 +125,6 @@ export const sources = [
     is_active: true
   },
   {
-    name: 'ESPN',
-    slug: 'espn',
-    feed_url: 'https://www.espn.com/espn/rss/news',
-    website_url: 'https://www.espn.com',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://espn.com&size=128',
-    color: '#CC0000',
-    category: 'sports',
-    fetch_method: 'rss',
-    is_active: true
-  },
-  {
     name: 'Autosport F1',
     slug: 'autosport',
     feed_url: 'https://www.autosport.com/rss/f1/news/',
@@ -298,7 +287,7 @@ export const sources = [
     color: '#00C853',
     category: 'ai',
     fetch_method: 'rss',
-    is_active: true
+    is_active: false
   },
   {
     name: 'SciTechDaily',

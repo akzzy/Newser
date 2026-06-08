@@ -97,7 +97,7 @@ export async function askAIIfDuplicate(title1, title2) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
-        model: 'google/gemma-4-31b-it',
+        model: 'meta/llama-3.3-70b-instruct',
         messages: [
           {
             role: 'system',

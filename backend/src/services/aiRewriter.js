@@ -51,7 +51,7 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
       const userPrompt = buildRewritePrompt(title, content);
 
       const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
-        model: 'google/gemma-4-31b-it',
+        model: 'meta/llama-3.3-70b-instruct',
         messages: [
           { role: 'system', content: REWRITE_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }

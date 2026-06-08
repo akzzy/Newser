@@ -189,7 +189,7 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
  * are collected in memory first, then deduplicated as a single batch against
  * each other AND against existing DB articles, before anything is written.
  */
-async function refreshAllFeeds(fastify) {
+export async function refreshAllFeeds(fastify) {
   const startTime = Date.now();
   fastify.log.info('[RefreshFeeds] Starting feed refresh cycle...');
 
