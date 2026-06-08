@@ -101,18 +101,7 @@ export async function askAIIfDuplicate(title1, title2) {
         messages: [
           {
             role: 'system',
-            content: `You are a news headline deduplication engine.
-
-Given two headlines, decide if they cover the SAME underlying news event or story.
-
-Rules:
-- "Same story" means the core news event is identical, even if the headlines emphasize different angles.
-- Two articles about "Sennheiser Momentum 5 launch" from different sites = SAME.
-- Two articles about "SpaceX Starship V3 first flight" from different sites = SAME.
-- "MacBook Pro launch" vs "iPad Pro launch" = DIFFERENT (different products).
-- "Google Chromecast updates" vs "Google Wear OS updates" = DIFFERENT (different products).
-
-Respond with ONLY: {"same": true} or {"same": false}`
+            content: `You are a news headline deduplication engine.\n\nGiven two headlines, decide if they cover the SAME underlying news event or story.\n\nRules:\n- "Same story" means the core news event is identical, even if the headlines emphasize different angles.\n- Two articles about "Sennheiser Momentum 5 launch" from different sites = SAME.\n- Two articles about "SpaceX Starship V3 first flight" from different sites = SAME.\n- "MacBook Pro launch" vs "iPad Pro launch" = DIFFERENT (different products).\n- "Google Chromecast updates" vs "Google Wear OS updates" = DIFFERENT (different products).\n\nRespond with ONLY: {"same": true} or {"same": false}`
           },
           {
             role: 'user',
@@ -121,13 +110,13 @@ Respond with ONLY: {"same": true} or {"same": false}`
         ],
         response_format: { type: 'json_object' },
         temperature: 0,
-        max_tokens: 20,
-        chat_template_kwargs: { enable_thinking: true }
+        max_tokens: 20
       }, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
-        }
+        },
+        timeout: 15000  // 15s timeout — prevents cPanel hanging indefinitely
       });
 
       const result = response.data;

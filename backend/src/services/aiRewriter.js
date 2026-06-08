@@ -101,7 +101,8 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
-        }
+        },
+        timeout: 30000  // 30s timeout — rewriter needs more time than deduplicator
       });
 
       const result = response.data;
