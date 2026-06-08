@@ -31,13 +31,15 @@ Convert the incoming text into a JSON object with these attributes:
   automating native codebase synthesis.").
 
 ### B. deepDiveContent (string, Markdown)
-Write 160-220 words of clean Markdown. Follow this exact structure — DO NOT write generic headers like "Summary Paragraph", "High-Signal Bullet Points", or "Markdown Tables":
+Write 160-220 words of clean Markdown. DO NOT write one big paragraph — break it into pieces:
 
-1. Opening paragraph (2-3 sentences): Start directly with the core facts. Bold (**text**) key phrases, company names, numbers, and technical terms.
+1. Opening paragraph (2-3 short sentences max): The core facts only. Bold (**text**) key names, numbers, and terms. Keep it punchy — no filler.
 
-2. Grouped bullet sections: Group related bullets under a short, story-specific label followed by a colon (e.g. "What's included:", "Key changes:", "The timeline:", "Under the hood:"). Each group has 2-4 tight bullet points. The labels must be specific to the story — NEVER use generic labels like "Key Points:", "Summary:", "Features:", "Details:".
+2. One or two bullet groups: Each group has a short story-specific label on its own line followed by a colon (e.g. "Key points from the crash:", "What changed:", "Under the hood:", "Championship impact:"). Under each label, write 3-5 tight bullet points. Never use generic labels like "Key Points:", "Summary:", "Details:".
 
-3. Optional table: ONLY if the source has explicit data (specs, results, pricing tiers, comparisons). Use pipe syntax. Never invent data.
+3. Optional closing paragraph (1-2 sentences): Any remaining key context, consequence, or what happens next.
+
+4. Optional table: Only if the source has explicit data (standings, specs, pricing tiers). Never invent data.
 
 ### C. category (string)
 Classify into exactly one: "AI", "Mobile", "Startups", "Gaming", "Science",

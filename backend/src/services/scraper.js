@@ -88,70 +88,18 @@ export async function scrapeArticle(url, sourceConfig = null) {
         content: content,
         image_url: imageUrl
       };
-    } else {
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      console.log(`[Scraper] Fast extractor returned null for ${url}. Falling back to Render...`);
-      return await scrapeWithRender(url, sourceConfig);
-    }
+    // If extractus returns nothing useful, throw so the caller falls back to XML summary
+    console.log(`[Scraper] Fast extractor returned no content for ${url}, falling back to XML summary.`);
+    throw new Error('No content extracted');
 
   } catch (error) {
-    console.log(`[Scraper] Fast extractor failed for ${url}: ${error.message}. Falling back to Render...`);
-    return await scrapeWithRender(url, sourceConfig);
-  }
-}
-
-/**
- * Calls the heavy Puppeteer microservice on Render.
- */
-async function scrapeWithRender(url, sourceConfig) {
-  try {
-    const serviceUrl = process.env.SCRAPER_SERVICE_URL || 'http://localhost:4000';
-    
-    const body = { url };
-    if (sourceConfig && sourceConfig.content_selector) {
-      body.selector = sourceConfig.content_selector;
-    }
-
-    const response = await fetch(`${serviceUrl}/scrape`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(20000)  // 20s — Render free tier wakes fast or not at all
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Microservice HTTP ${response.status}: ${errorText}`);
-    }
-
-    const data = await response.json();
-    
-    let content = data.content;
-    if (content) {
-      content = content.substring(0, 15000);
-    }
-
-    return {
-      content: content || '',
-      image_url: data.image_url || null 
-    };
-  } catch (error) {
-    console.error(`[Scraper] Error delegating ${url} to microservice:`, error.message);
     throw error;
   }
 }
 
 /**
- * Ping the scraper service to keep it awake on free tiers (e.g. Render).
+ * Ping the scraper service (no-op — Render removed, kept for interface compatibility).
  */
 export async function pingScraper() {
-  try {
-    const serviceUrl = process.env.SCRAPER_SERVICE_URL || 'http://localhost:4000';
-    // Just a quick fire-and-forget fetch to the health endpoint with a short timeout
-    await fetch(`${serviceUrl}/health`, { signal: AbortSignal.timeout(5000) });
-  } catch (err) {
-    // Ignore errors, we just want to wake it up
-  }
+  // No-op: Render microservice removed. Using local extractus only.
 }
