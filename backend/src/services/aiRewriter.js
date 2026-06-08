@@ -2,26 +2,64 @@ import axios from 'axios';
 import { REWRITE_SYSTEM_PROMPT, buildRewritePrompt } from '../config/prompts.js';
 
 /**
- * Parse the AI response JSON, handling potential formatting issues.
+ * Attempt to repair and parse malformed JSON from the AI.
+ * Handles: truncated JSON, unescaped apostrophes, trailing commas.
  */
 function parseAIResponse(text) {
   let cleaned = text.trim();
-  if (cleaned.startsWith('```json')) {
-    cleaned = cleaned.slice(7);
-  } else if (cleaned.startsWith('```')) {
-    cleaned = cleaned.slice(3);
-  }
-  if (cleaned.endsWith('```')) {
-    cleaned = cleaned.slice(0, -3);
-  }
+
+  // Strip markdown code fences
+  if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
+  else if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
+  if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
   cleaned = cleaned.trim();
 
-  const parsed = JSON.parse(cleaned);
+  // Attempt 1: Parse as-is (happy path)
+  try {
+    const parsed = JSON.parse(cleaned);
+    return extractFields(parsed);
+  } catch (_) {}
 
+  // Attempt 2: Fix trailing commas before } or ]
+  try {
+    const fixed = cleaned.replace(/,\s*([}\]])/g, '$1');
+    const parsed = JSON.parse(fixed);
+    return extractFields(parsed);
+  } catch (_) {}
+
+  // Attempt 3: Truncated JSON — close unclosed braces/brackets
+  try {
+    let repaired = cleaned;
+    // Count unclosed braces and brackets
+    let openBraces = 0, openBrackets = 0;
+    let inString = false, escape = false;
+    for (const ch of repaired) {
+      if (escape) { escape = false; continue; }
+      if (ch === '\\') { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') openBraces++;
+      if (ch === '}') openBraces--;
+      if (ch === '[') openBrackets++;
+      if (ch === ']') openBrackets--;
+    }
+    // Close any open strings, brackets, braces
+    if (inString) repaired += '"';
+    repaired += ']'.repeat(Math.max(0, openBrackets));
+    repaired += '}'.repeat(Math.max(0, openBraces));
+    // Remove trailing comma before the closing braces we just added
+    repaired = repaired.replace(/,\s*([}\]])/g, '$1');
+    const parsed = JSON.parse(repaired);
+    return extractFields(parsed);
+  } catch (_) {}
+
+  throw new Error(`Failed to parse AI JSON response. Raw snippet: ${cleaned.substring(0, 200)}`);
+}
+
+function extractFields(parsed) {
   if (!parsed.titleHook || !parsed.deepDiveContent) {
     throw new Error('Missing required fields: titleHook or deepDiveContent');
   }
-
   return {
     title_hook: parsed.titleHook,
     deep_dive_content: parsed.deepDiveContent,
@@ -39,7 +77,7 @@ function sleep(ms) {
 }
 
 /**
- * Rewrite a single article using Mistral mistral-medium-3-5.
+ * Rewrite a single article using meta/llama-3.3-70b-instruct on NVIDIA NIM.
  * Includes retry logic with exponential backoff for rate limits.
  */
 export async function rewriteArticle(title, content, maxRetries = 3) {
@@ -57,9 +95,8 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 1024,
-        response_format: { type: 'json_object' },
-        chat_template_kwargs: { enable_thinking: true }
+        max_tokens: 2048,  // Increased from 1024 — 350 word articles need more room
+        response_format: { type: 'json_object' }
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +110,7 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
         throw new Error('Empty response from AI');
       }
 
-      // Mandatory 3-second sleep to ensure we NEVER exceed NVIDIA 40 RPM limit (max 20 RPM with this sleep)
+      // Mandatory 3-second sleep to stay well under NVIDIA 40 RPM limit
       await sleep(3000);
 
       return parseAIResponse(responseText);
