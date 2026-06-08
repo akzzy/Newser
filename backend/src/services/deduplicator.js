@@ -10,6 +10,8 @@
  * keeping costs minimal while achieving near-perfect accuracy.
  */
 
+import axios from 'axios';
+
 
 // ── Stop words ──
 const STOP_WORDS = new Set([
@@ -94,18 +96,12 @@ export async function askAIIfDuplicate(title1, title2) {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'google/gemma-4-31b-it',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a news headline deduplication engine.
+      const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
+        model: 'google/gemma-4-31b-it',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a news headline deduplication engine.
 
 Given two headlines, decide if they cover the SAME underlying news event or story.
 
@@ -117,27 +113,24 @@ Rules:
 - "Google Chromecast updates" vs "Google Wear OS updates" = DIFFERENT (different products).
 
 Respond with ONLY: {"same": true} or {"same": false}`
-            },
-            {
-              role: 'user',
-              content: `Headline A: "${title1}"\nHeadline B: "${title2}"`
-            }
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0,
-          max_tokens: 20,
-          chat_template_kwargs: { enable_thinking: true }
-        })
+          },
+          {
+            role: 'user',
+            content: `Headline A: "${title1}"\nHeadline B: "${title2}"`
+          }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0,
+        max_tokens: 20,
+        chat_template_kwargs: { enable_thinking: true }
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        const err = new Error(`API error occurred: Status ${response.status}. Body: ${errorText}`);
-        err.statusCode = response.status;
-        throw err;
-      }
-
-      const result = await response.json();
+      const result = response.data;
       const text = result.choices?.[0]?.message?.content?.trim();
       if (!text) return false;
 
@@ -147,7 +140,7 @@ Respond with ONLY: {"same": true} or {"same": false}`
     const parsed = JSON.parse(text);
     return parsed.same === true;
   } catch (err) {
-    const isRateLimit = err.statusCode === 429 || err.message?.includes('429') || err.message?.includes('rate');
+    const isRateLimit = err.response?.status === 429 || err.message?.includes('429') || err.message?.includes('rate');
     
     if (isRateLimit && attempt < maxRetries) {
       const waitTime = 10000 * attempt;

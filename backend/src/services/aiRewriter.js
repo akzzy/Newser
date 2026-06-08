@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { REWRITE_SYSTEM_PROMPT, buildRewritePrompt } from '../config/prompts.js';
 
 /**
@@ -49,33 +50,24 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
 
       const userPrompt = buildRewritePrompt(title, content);
 
-      const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-        method: 'POST',
+      const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
+        model: 'google/gemma-4-31b-it',
+        messages: [
+          { role: 'system', content: REWRITE_SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 1024,
+        response_format: { type: 'json_object' },
+        chat_template_kwargs: { enable_thinking: true }
+      }, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'google/gemma-4-31b-it',
-          messages: [
-            { role: 'system', content: REWRITE_SYSTEM_PROMPT },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.7,
-          max_tokens: 1024,
-          response_format: { type: 'json_object' },
-          chat_template_kwargs: { enable_thinking: true }
-        })
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        const err = new Error(`API error occurred: Status ${response.status}. Body: ${errorText}`);
-        err.statusCode = response.status;
-        throw err;
-      }
-
-      const result = await response.json();
+      const result = response.data;
       const responseText = result.choices?.[0]?.message?.content;
       if (!responseText) {
         throw new Error('Empty response from AI');
@@ -86,7 +78,7 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
 
       return parseAIResponse(responseText);
     } catch (error) {
-      const isRateLimit = error.statusCode === 429 || error.message?.includes('429') || error.message?.includes('rate');
+      const isRateLimit = error.response?.status === 429 || error.message?.includes('429') || error.message?.includes('rate');
 
       if (isRateLimit && attempt < maxRetries) {
         const waitTime = 15000 * Math.pow(2, attempt - 1);
