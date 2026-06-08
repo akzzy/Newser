@@ -89,7 +89,7 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
       const userPrompt = buildRewritePrompt(title, content);
 
       const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
-        model: 'mistralai/mixtral-8x7b-instruct-v0.1',
+        model: 'mistralai/mistral-small-4-119b-2603',
         messages: [
           { role: 'system', content: REWRITE_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
@@ -102,7 +102,7 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        timeout: 30000  // 30s — 8B model should respond much faster than 70B
+        timeout: 60000  // 60s — 119B model, give it time
       });
 
       const result = response.data;
