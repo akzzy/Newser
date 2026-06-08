@@ -26,17 +26,32 @@ function renderMarkdown(md: string): string {
     // Horizontal rules
     .replace(/^---$/gm, '<hr/>');
 
-  // Tables
-  html = html.replace(
-    /\|(.+)\|\n\|[-| ]+\|\n((?:\|.+\|\n?)*)/g,
-    (_, headerRow: string, bodyRows: string) => {
-      const headers = headerRow.split('|').map((h: string) => h.trim()).filter(Boolean);
-      const rows = bodyRows.trim().split('\n').map((row: string) =>
-        row.split('|').map((c: string) => c.trim()).filter(Boolean)
-      );
-      return `<table><thead><tr>${headers.map((h: string) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((r: string[]) => `<tr>${r.map((c: string) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  // Tables — parse line by line (regex is too brittle for multiline tables)
+  {
+    const lines = html.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    const out: string[] = [];
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i].trim();
+      const nextLine = lines[i + 1]?.trim() ?? '';
+      // Detect table: current line is a row, next line is a separator like |---|---|
+      if (line.startsWith('|') && /^\|[\s\-|:]+\|$/.test(nextLine)) {
+        const headers = line.split('|').map((h: string) => h.trim()).filter(Boolean);
+        i += 2; // skip header + separator
+        const rows: string[][] = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          const cells = lines[i].split('|').map((c: string) => c.trim()).filter(Boolean);
+          rows.push(cells);
+          i++;
+        }
+        out.push(`<table><thead><tr>${headers.map((h: string) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((r: string[]) => `<tr>${r.map((c: string) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
+      } else {
+        out.push(lines[i]);
+        i++;
+      }
     }
-  );
+    html = out.join('\n');
+  }
 
   // Lists (unordered)
   html = html.replace(/^[*-] (.+)$/gm, '<li>$1</li>');

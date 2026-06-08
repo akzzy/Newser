@@ -193,25 +193,35 @@
   border-collapse: collapse;
   margin: var(--space-md) 0;
   font-size: 13px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .markdown th {
-  background: rgba(255, 255, 255, 0.08);
-  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 10px 14px;
   text-align: left;
   font-weight: 600;
-  color: var(--color-white);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .markdown td {
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .markdown tr:last-child td {
   border-bottom: none;
+}
+
+.markdown tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .markdown blockquote {
