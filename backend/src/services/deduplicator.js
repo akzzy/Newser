@@ -10,7 +10,6 @@
  * keeping costs minimal while achieving near-perfect accuracy.
  */
 
-import { Mistral } from '@mistralai/mistralai';
 
 // ── Stop words ──
 const STOP_WORDS = new Set([
@@ -49,16 +48,11 @@ const SYNONYMS = {
 const DEFINITE_DUPLICATE_THRESHOLD = 0.50;  // High confidence — skip AI
 const GRAY_ZONE_THRESHOLD = 0.20;            // Below this — definitely not a dup
 
-// ── Mistral client (lazy init, reuses the same key as aiRewriter) ──
-let mistralClient = null;
-
-function getMistralClient() {
-  if (!mistralClient) {
-    const apiKey = process.env.MISTRAL_API_KEY;
-    if (!apiKey) throw new Error('MISTRAL_API_KEY not configured');
-    mistralClient = new Mistral({ apiKey });
-  }
-  return mistralClient;
+// ── NVIDIA API Key Helper ──
+function getApiKey() {
+  const apiKey = process.env.NVIDIA_API_KEY;
+  if (!apiKey) throw new Error('NVIDIA_API_KEY not configured');
+  return apiKey;
 }
 
 // ── Tokenizer ──
@@ -95,17 +89,23 @@ export function calculateTitleSimilarity(title1, title2) {
 
 // ── AI duplicate check ──
 export async function askAIIfDuplicate(title1, title2) {
-  const mistral = getMistralClient();
+  const apiKey = getApiKey();
   const maxRetries = 3;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const result = await mistral.chat.complete({
-        model: 'mistral-medium-3-5',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a news headline deduplication engine.
+      const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'google/gemma-4-31b-it',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a news headline deduplication engine.
 
 Given two headlines, decide if they cover the SAME underlying news event or story.
 
@@ -117,22 +117,32 @@ Rules:
 - "Google Chromecast updates" vs "Google Wear OS updates" = DIFFERENT (different products).
 
 Respond with ONLY: {"same": true} or {"same": false}`
-        },
-        {
-          role: 'user',
-          content: `Headline A: "${title1}"\nHeadline B: "${title2}"`
-        }
-      ],
-      responseFormat: { type: 'json_object' },
-      temperature: 0,
-      maxTokens: 20
-    });
+            },
+            {
+              role: 'user',
+              content: `Headline A: "${title1}"\nHeadline B: "${title2}"`
+            }
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0,
+          max_tokens: 20,
+          chat_template_kwargs: { enable_thinking: true }
+        })
+      });
 
-    const text = result.choices?.[0]?.message?.content?.trim();
-    if (!text) return false;
+      if (!response.ok) {
+        const errorText = await response.text();
+        const err = new Error(`API error occurred: Status ${response.status}. Body: ${errorText}`);
+        err.statusCode = response.status;
+        throw err;
+      }
 
-    // Strict 3 second delay to respect 0.38 RPS limit
-    await sleep(3000);
+      const result = await response.json();
+      const text = result.choices?.[0]?.message?.content?.trim();
+      if (!text) return false;
+
+      // Strict delay to respect 40 RPS limit
+      await sleep(3000);
 
     const parsed = JSON.parse(text);
     return parsed.same === true;
