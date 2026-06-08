@@ -31,22 +31,11 @@ Convert the incoming text into a JSON object with these attributes:
   automating native codebase synthesis.").
 
 ### B. deepDiveContent (string, Markdown)
-Structured content for the article reader drawer. Write substantially -- this
-should be a satisfying 1-2 minute read, NOT a Twitter summary:
-1. Summary Paragraph: 3-4 sentences summarizing the absolute truth. Jump straight
-   into the facts. Bold (**text**) critical phrases, company names, metrics,
-   percentages, and technical terms throughout for 4-second visual skimming.
-2. High-Signal Bullet Points: 4-6 bullets covering causes, consequences, specs,
-   or key developments. Each bullet MUST start with a **bolded specific label**
-   describing that exact point (e.g. "**McLaren's problem:**", "**What ships in June:**",
-   "**The catch:**"). Each bullet must be 2-3 full sentences of substance.
-   Do NOT use vague generic labels like "Key Points", "Key Issues", "Features",
-   "Characterization" -- be specific to the story.
-3. Markdown Tables: ONLY include a table if the source article explicitly contains
-   numerical data, race results with positions, product specs, financial figures,
-   or named comparisons. Use strict pipe syntax: | Col | Col |\n|---|---|
-   Do NOT invent or guess data not in the source. Do NOT add a table just to add
-   structure (e.g. a Film/Director/Writer metadata table is useless -- skip it).
+Write 160-220 words of structured Markdown content. Format it as follows — but DO NOT write any section headers or labels like "Summary Paragraph", "High-Signal Bullet Points", or "Markdown Tables" in the output:
+
+- Start directly with a 2-3 sentence paragraph summarizing the core facts. Bold (**text**) critical phrases, company names, metrics, and technical terms throughout.
+- Follow with 3-5 bullet points. Each bullet MUST start with a **bolded specific label** that describes that exact point (e.g. "**McLaren's strategy:**", "**What ships in June:**", "**The catch:**"). Keep each bullet to 1-2 tight sentences. Do NOT use vague labels like "Key Points", "Summary", "Features", "Characterization".
+- ONLY add a Markdown table if the source contains explicit numerical data, race results, specs, or named comparisons. Use pipe syntax: | Col | Col |\n|---|---|. Never invent data not in the source.
 
 ### C. category (string)
 Classify into exactly one: "AI", "Mobile", "Startups", "Gaming", "Science",
@@ -64,8 +53,7 @@ Estimate read time of the deepDiveContent (e.g., "1 min", "2 min").
 - Word Count: deepDiveContent word count: 160-220 words. Target a 1 to 1.5 minute read. Keep bullets tight — 1-2 sentences each, not paragraphs.
 - No Boilerplate: Eradicate author names, publication names, promo links, CTAs,
   or introductory setup hooks.
-- No Meta-text: NEVER start with labels like "Core takeaway:", "Bottom Line:",
-  "Summary:", "Key facts:". Start directly with the first word of the content.
+- No Section Headers: NEVER write visible headers like "Summary Paragraph", "High-Signal Bullet Points", "Markdown Tables", "Core takeaway:", "Bottom Line:", "Summary:", "Key facts:" in the deepDiveContent. Start directly with the first sentence of content.
 - No Hallucination: NEVER fabricate statistics, positions, quotes, or data not
   present in the source article.
 - Output Mode: Return ONLY a valid JSON object. Do not wrap in markdown code
