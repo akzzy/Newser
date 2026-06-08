@@ -89,7 +89,7 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
       const userPrompt = buildRewritePrompt(title, content);
 
       const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
-        model: 'mistralai/mistral-small-24b-instruct-2501',
+        model: 'mistralai/mixtral-8x7b-instruct-v0.1',
         messages: [
           { role: 'system', content: REWRITE_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
