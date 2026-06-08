@@ -89,7 +89,7 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
       const userPrompt = buildRewritePrompt(title, content);
 
       const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
-        model: 'meta/llama-3.3-70b-instruct',
+        model: 'meta/llama-3.1-8b-instruct',
         messages: [
           { role: 'system', content: REWRITE_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
@@ -102,7 +102,7 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        timeout: 60000  // 60s timeout — cPanel → NVIDIA can be slow
+        timeout: 30000  // 30s — 8B model should respond much faster than 70B
       });
 
       const result = response.data;
