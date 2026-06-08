@@ -42,7 +42,8 @@ export async function scrapeArticle(url, sourceConfig = null) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5'
-      }
+      },
+      signal: AbortSignal.timeout(10000)  // 10s — fail fast if site is slow or blocking
     });
 
     const html = await response.text();
@@ -117,8 +118,7 @@ async function scrapeWithRender(url, sourceConfig) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      // Wait up to 2 minutes for the microservice
-      signal: AbortSignal.timeout(120000)
+      signal: AbortSignal.timeout(20000)  // 20s — Render free tier wakes fast or not at all
     });
 
     if (!response.ok) {
