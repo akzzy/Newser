@@ -95,14 +95,14 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 2048,  // Increased from 1024 — 350 word articles need more room
+        max_tokens: 1200,  // Enough for 350 words — lower = faster inference on free tier
         response_format: { type: 'json_object' }
       }, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        timeout: 30000  // 30s timeout — rewriter needs more time than deduplicator
+        timeout: 60000  // 60s timeout — cPanel → NVIDIA can be slow
       });
 
       const result = response.data;
