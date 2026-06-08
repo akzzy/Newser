@@ -8,7 +8,9 @@ import StackedCardGrid, { CardItem } from '@/components/StackedCardGrid';
 import { 
   Flame, Star, Clock, Sparkles, Globe, Briefcase, 
   Cpu, Gamepad2, Film, Trophy, Landmark, Hash, 
-  Microscope, Palette, HeartPulse, Music, Car, Utensils 
+  Microscope, Palette, HeartPulse, Music, Car, Utensils,
+  Brain, Smartphone, Wifi, HardDrive,
+  Shirt, GraduationCap, ShieldCheck, Code, Volleyball, Gauge
 } from 'lucide-react';
 import styles from './DiscoverBento.module.css';
 
@@ -21,14 +23,24 @@ const getCategoryIcon = (cat: string) => {
   if (normalized.includes('health') || normalized.includes('medic')) return <HeartPulse {...props} />;
   if (normalized.includes('culture') || normalized.includes('art')) return <Palette {...props} />;
   if (normalized.includes('music')) return <Music {...props} />;
+  if (normalized.includes('motor')) return <Gauge {...props} />;
   if (normalized.includes('auto') || normalized.includes('car')) return <Car {...props} />;
   if (normalized.includes('food') || normalized.includes('dining')) return <Utensils {...props} />;
   if (normalized.includes('world') || normalized.includes('foryou') || normalized === 'all') return <Globe {...props} />;
   if (normalized.includes('business') || normalized.includes('finance')) return <Briefcase {...props} />;
   if (normalized.includes('game') || normalized.includes('gaming')) return <Gamepad2 {...props} />;
   if (normalized.includes('entertain') || normalized.includes('movie')) return <Film {...props} />;
-  if (normalized.includes('sport')) return <Trophy {...props} />;
+  if (normalized.includes('football') || normalized.includes('soccer')) return <Volleyball {...props} />;
+  if (normalized.includes('sport') || normalized.includes('basket')) return <Trophy {...props} />;
   if (normalized.includes('politic')) return <Landmark {...props} />;
+  if (normalized === 'ai' || normalized.includes('artificial intelligence')) return <Brain {...props} />;
+  if (normalized.includes('mobile') || normalized.includes('phone')) return <Smartphone {...props} />;
+  if (normalized.includes('internet') || normalized.includes('web')) return <Wifi {...props} />;
+  if (normalized.includes('hardware')) return <HardDrive {...props} />;
+  if (normalized.includes('software') || normalized.includes('program') || normalized.includes('code')) return <Code {...props} />;
+  if (normalized.includes('educat') || normalized.includes('school') || normalized.includes('learn')) return <GraduationCap {...props} />;
+  if (normalized.includes('secur') || normalized.includes('cyber') || normalized.includes('hack')) return <ShieldCheck {...props} />;
+  if (normalized.includes('fashion') || normalized.includes('style') || normalized.includes('cloth')) return <Shirt {...props} />;
   return <Hash {...props} />;
 };
 

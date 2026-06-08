@@ -45,10 +45,6 @@ export async function scrapeArticle(url, sourceConfig = null) {
       }
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
     const html = await response.text();
     const extracted = await extract(html, url); // Pass HTML and original URL
     
@@ -92,6 +88,9 @@ export async function scrapeArticle(url, sourceConfig = null) {
         image_url: imageUrl
       };
     } else {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
       console.log(`[Scraper] Fast extractor returned null for ${url}. Falling back to Render...`);
       return await scrapeWithRender(url, sourceConfig);
     }

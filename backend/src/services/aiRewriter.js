@@ -1,21 +1,4 @@
-import { Mistral } from '@mistralai/mistralai';
 import { REWRITE_SYSTEM_PROMPT, buildRewritePrompt } from '../config/prompts.js';
-
-let client = null;
-
-/**
- * Initialize the Mistral client lazily.
- */
-function getClient() {
-  if (!client) {
-    const apiKey = process.env.MISTRAL_API_KEY;
-    if (!apiKey || apiKey === 'your_mistral_api_key_here') {
-      throw new Error('MISTRAL_API_KEY not configured in .env');
-    }
-    client = new Mistral({ apiKey });
-  }
-  return client;
-}
 
 /**
  * Parse the AI response JSON, handling potential formatting issues.
@@ -61,26 +44,44 @@ function sleep(ms) {
 export async function rewriteArticle(title, content, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const mistral = getClient();
+      const apiKey = process.env.NVIDIA_API_KEY;
+      if (!apiKey) throw new Error('NVIDIA_API_KEY not configured in .env');
+
       const userPrompt = buildRewritePrompt(title, content);
 
-      const result = await mistral.chat.complete({
-        model: 'mistral-medium-2508',
-        messages: [
-          { role: 'system', content: REWRITE_SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt }
-        ],
-        responseFormat: { type: 'json_object' },
-        temperature: 0.7,
-        maxTokens: 1024
+      const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'google/gemma-4-31b-it',
+          messages: [
+            { role: 'system', content: REWRITE_SYSTEM_PROMPT },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 1024,
+          response_format: { type: 'json_object' },
+          chat_template_kwargs: { enable_thinking: true }
+        })
       });
 
-      const responseText = result.choices?.[0]?.message?.content;
-      if (!responseText) {
-        throw new Error('Empty response from Mistral');
+      if (!response.ok) {
+        const errorText = await response.text();
+        const err = new Error(`API error occurred: Status ${response.status}. Body: ${errorText}`);
+        err.statusCode = response.status;
+        throw err;
       }
 
-      // Mandatory 3-second sleep to ensure we NEVER exceed 0.38 Requests Per Second limit
+      const result = await response.json();
+      const responseText = result.choices?.[0]?.message?.content;
+      if (!responseText) {
+        throw new Error('Empty response from AI');
+      }
+
+      // Mandatory 3-second sleep to ensure we NEVER exceed NVIDIA 40 RPM limit (max 20 RPM with this sleep)
       await sleep(3000);
 
       return parseAIResponse(responseText);

@@ -73,14 +73,18 @@ function stripHtml(html) {
  */
 export async function fetchFeed(source, maxAgeHours = 24) {
   try {
-    const feed = await parser.parseURL(source.feed_url);
+    const feedUrls = source.feed_url.split(',').map(u => u.trim()).filter(Boolean);
     const articles = [];
     const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
 
-    for (const item of feed.items) {
-      // Skip articles older than maxAgeHours
-      const pubDate = new Date(item.isoDate || item.pubDate || 0);
-      if (pubDate < cutoff) continue;
+    for (const url of feedUrls) {
+      try {
+        const feed = await parser.parseURL(url);
+        
+        for (const item of feed.items) {
+          // Skip articles older than maxAgeHours
+          const pubDate = new Date(item.isoDate || item.pubDate || 0);
+          if (pubDate < cutoff) continue;
 
       // Extract the best text content available
       const rawContent = item['content:encoded'] || item.content || item.contentSnippet || item.summary || '';
@@ -115,18 +119,27 @@ export async function fetchFeed(source, maxAgeHours = 24) {
       // Strip source name from the end of the title (e.g. " - AP News" or " | TechCrunch")
       // This prevents the deduplicator from getting falsely triggered by shared branding tokens
       const escapedSourceName = source.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const suffixRegex = new RegExp(`\\s+[-|]\\s+${escapedSourceName}$`, 'i');
-      cleanTitle = cleanTitle.replace(suffixRegex, '');
+          const suffixRegex = new RegExp(`\\s+[-|]\\s+${escapedSourceName}$`, 'i');
+          cleanTitle = cleanTitle.replace(suffixRegex, '');
+          
+          const originalUrl = (item.link || item.guid || '').trim();
+          
+          // Skip duplicates
+          if (articles.some(a => a.url === originalUrl)) continue;
 
-      articles.push({
-        title: cleanTitle,
-        original_content: cleanContent.substring(0, 15000), // Cap at 15000 chars for AI input
-        url: (item.link || item.guid || '').trim(),
-        image_url: extractImageUrl(item),
-        author: item.creator || item.author || item['dc:creator'] || null,
-        published_at: item.isoDate || item.pubDate || new Date().toISOString(),
-        source_slug: source.slug
-      });
+          articles.push({
+            title: cleanTitle,
+            original_content: cleanContent.substring(0, 15000), // Cap at 15000 chars for AI input
+            url: originalUrl,
+            image_url: extractImageUrl(item),
+            author: item.creator || item.author || item['dc:creator'] || null,
+            published_at: item.isoDate || item.pubDate || new Date().toISOString(),
+            source_slug: source.slug
+          });
+        }
+      } catch (error) {
+        console.error(`[FeedFetcher] Error fetching sub-feed ${url} for source ${source.name}: ${error.message}`);
+      }
     }
 
     // Sort by most recent first and cap at 15 to prevent high-volume feeds from flooding the app

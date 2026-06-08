@@ -279,43 +279,10 @@ export const sources = [
     is_active: true
   },
   {
-    name: 'Motorsport F1',
-    slug: 'motorsport-f1',
-    feed_url: 'https://www.motorsport.com/rss/f1/news/',
-    website_url: 'https://www.motorsport.com/f1',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://motorsport.com&size=128',
-    color: '#FF0000',
-    category: 'sports',
-    fetch_method: 'rss',
-    is_active: true
-  },
-  {
-    name: 'Motorsport MotoGP',
-    slug: 'motorsport-motogp',
-    feed_url: 'https://www.motorsport.com/rss/motogp/news/',
-    website_url: 'https://www.motorsport.com/motogp',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://motorsport.com&size=128',
-    color: '#FF0000',
-    category: 'sports',
-    fetch_method: 'rss',
-    is_active: true
-  },
-  {
-    name: 'Motorsport WEC',
-    slug: 'motorsport-wec',
-    feed_url: 'https://www.motorsport.com/rss/wec/news/',
-    website_url: 'https://www.motorsport.com/wec',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://motorsport.com&size=128',
-    color: '#FF0000',
-    category: 'sports',
-    fetch_method: 'rss',
-    is_active: true
-  },
-  {
-    name: 'Motorsport IMSA',
-    slug: 'motorsport-imsa',
-    feed_url: 'https://www.motorsport.com/rss/imsa/news/',
-    website_url: 'https://www.motorsport.com/imsa',
+    name: 'Motorsport',
+    slug: 'motorsport',
+    feed_url: 'https://www.motorsport.com/rss/f1/news/,https://www.motorsport.com/rss/motogp/news/,https://www.motorsport.com/rss/wec/news/,https://www.motorsport.com/rss/imsa/news/',
+    website_url: 'https://www.motorsport.com',
     logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://motorsport.com&size=128',
     color: '#FF0000',
     category: 'sports',
@@ -347,22 +314,11 @@ export const sources = [
   {
     name: 'PC Gamer',
     slug: 'pc-gamer',
-    feed_url: 'https://www.pcgamer.com/feeds.xml',
+    feed_url: 'https://www.pcgamer.com/feeds.xml,https://www.pcgamer.com/feeds/tag/hardware/',
     website_url: 'https://www.pcgamer.com',
     logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://pcgamer.com&size=128',
     color: '#D42127',
     category: 'gaming',
-    fetch_method: 'rss',
-    is_active: true
-  },
-  {
-    name: 'PC Gamer Hardware',
-    slug: 'pc-gamer-hardware',
-    feed_url: 'https://www.pcgamer.com/feeds/tag/hardware/',
-    website_url: 'https://www.pcgamer.com/hardware',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://pcgamer.com&size=128',
-    color: '#D42127',
-    category: 'hardware',
     fetch_method: 'rss',
     is_active: true
   },

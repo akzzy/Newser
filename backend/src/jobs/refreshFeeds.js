@@ -386,11 +386,15 @@ async function refreshAllFeeds(fastify) {
         }
       } catch (err) {
         logger.error(`[RefreshFeeds] Scrape error for "${article.title}": ${err.message}`);
-        await supabase.from('system_alerts').insert({
-          type: 'scraper_error',
-          message: `Failed to scrape "${article.title}": ${err.message}`,
-          source_id: article.source_id
-        });
+        
+        // Skip routine failures (like image galleries) to avoid spamming the UI
+        if (!err.message.includes('Could not extract sufficient content')) {
+          await supabase.from('system_alerts').insert({
+            type: 'scraper_error',
+            message: `Failed to scrape "${article.title}": ${err.message}`,
+            source_id: article.source_id
+          });
+        }
       }
     }
   }
