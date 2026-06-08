@@ -96,10 +96,10 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
       }
 
       console.error(`[AIRewriter] Error rewriting "${title.substring(0, 50)}..." (attempt ${attempt}):`, error.message?.substring(0, 200));
-      return null;
+      throw error;
     }
   }
-  return null;
+  throw new Error('Max retries exceeded');
 }
 
 /**

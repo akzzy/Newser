@@ -123,7 +123,31 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
       logger.warn(`[AIRewrite] Scraper failed: ${err.message}. Falling back to XML summary.`);
     }
 
-    const aiResult = await rewriteArticle(article.title, finalContent);
+    let aiResult = null;
+    try {
+      aiResult = await rewriteArticle(article.title, finalContent);
+    } catch (err) {
+      logger.error(`[AIRewrite] Failed for "${article.title}": ${err.message}`);
+      
+      // Log to system alerts dashboard
+      await supabase.from('system_alerts').insert({
+        type: 'ai_error',
+        message: `AI Rewrite failed for "${article.title}": ${err.message}`,
+        source_id: article.source_id
+      });
+      
+      // Mark as failed so we can retry later (or drop)
+      await supabase
+        .from('articles')
+        .update({ rewrite_status: 'failed' })
+        .eq('id', article.id);
+        
+      // Increment failed count and move to next article
+      if (i < pendingArticles.length - 1) {
+        await sleep(5000);
+      }
+      continue;
+    }
 
     if (aiResult) {
       const { error: updateErr } = await supabase
@@ -145,12 +169,6 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
       } else {
         successCount++;
       }
-    } else {
-      // Mark as failed so we can retry later
-      await supabase
-        .from('articles')
-        .update({ rewrite_status: 'failed' })
-        .eq('id', article.id);
     }
 
     // 5-second delay between requests (~12 RPM, under Gemini's 15 RPM free tier limit)
