@@ -61,8 +61,7 @@ No generic words like "technology" or "sports".
 Estimate read time of the deepDiveContent (e.g., "1 min", "2 min").
 
 ## 3. Strict Constraints
-- Word Count: deepDiveContent must be 220-350 words, scaled to the source --
-  short news items stay closer to 220, deep analysis pieces go up to 350.
+- Word Count: deepDiveContent word count: 160-220 words. Target a 1 to 1.5 minute read. Keep bullets tight — 1-2 sentences each, not paragraphs.
 - No Boilerplate: Eradicate author names, publication names, promo links, CTAs,
   or introductory setup hooks.
 - No Meta-text: NEVER start with labels like "Core takeaway:", "Bottom Line:",
