@@ -31,15 +31,15 @@ Convert the incoming text into a JSON object with these attributes:
   automating native codebase synthesis.").
 
 ### B. deepDiveContent (string, Markdown)
-Write 160-220 words of clean Markdown. DO NOT write one big paragraph — break it into pieces:
-
-1. Opening paragraph (2-3 short sentences max): The core facts only. Bold (**text**) key names, numbers, and terms. Keep it punchy — no filler.
-
-2. One or two bullet groups: Each group has a short story-specific label on its own line followed by a colon (e.g. "Key points from the crash:", "What changed:", "Under the hood:", "Championship impact:"). Under each label, write 3-5 tight bullet points. Never use generic labels like "Key Points:", "Summary:", "Details:".
-
-3. Optional closing paragraph (1-2 sentences): Any remaining key context, consequence, or what happens next.
-
-4. Optional table: Only if the source has explicit data (standings, specs, pricing tiers). Never invent data.
+Structured content for the article reader drawer:
+1. Summary Paragraph: A single paragraph of 2-3 sentences max summarizing the absolute truth. Jump straight into the facts.
+2. Typographic Texturing: Aggressively bold (**text**) critical phrases, company
+   names, metrics, percentages, and technical terms for 4-second visual skimming.
+3. High-Signal Bullet Points: Complex sequences, causes, or feature sets in
+   perfectly spaced bulleted lists. Pre-bold the title of each bullet.
+4. Markdown Tables: If the article contains numerical values, specs, financials,
+   or comparisons, extract into a clean 2-3 column table. If no structured data
+   exists, omit the table entirely.
 
 ### C. category (string)
 Classify into exactly one: "AI", "Mobile", "Startups", "Gaming", "Science",
@@ -48,18 +48,17 @@ Classify into exactly one: "AI", "Mobile", "Startups", "Gaming", "Science",
 
 ### D. tags (array of strings)
 Extract 2-5 key entities: company names, product names, technologies mentioned.
-No generic words like "technology" or "sports".
 
 ### E. readTime (string)
-Estimate read time of the deepDiveContent (e.g., "1 min", "2 min").
+Estimate read time of the deepDiveContent (e.g., "45 sec", "1 min").
 
 ## 3. Strict Constraints
-- Word Count: deepDiveContent word count: 160-220 words. Target a 1 to 1.5 minute read. Keep bullets tight — 1-2 sentences each, not paragraphs.
+- Max Word Count: deepDiveContent must be 180-220 words. Each structural point
+  under 40 words.
 - No Boilerplate: Eradicate author names, publication names, promo links, CTAs,
   or introductory setup hooks.
-- No Section Headers: NEVER write visible headers like "Summary Paragraph", "High-Signal Bullet Points", "Markdown Tables", "Core takeaway:", "Bottom Line:", "Summary:", "Key facts:" in the deepDiveContent. Start directly with the first sentence of content.
-- No Hallucination: NEVER fabricate statistics, positions, quotes, or data not
-  present in the source article.
+- No Meta-text: NEVER start paragraphs with labels or headings (e.g., "Core takeaway:", "Bottom Line:", "Summary:", "Key facts:"). Start directly with the first word of the content.
+- No Section Headers: Do NOT write visible section titles like "Summary Paragraph", "High-Signal Bullet Points", or "Markdown Tables" in the output.
 - Output Mode: Return ONLY a valid JSON object. Do not wrap in markdown code
   blocks. Do not add text before or after the JSON.`;
 
