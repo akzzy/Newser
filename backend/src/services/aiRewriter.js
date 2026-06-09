@@ -6,11 +6,6 @@ import { REWRITE_SYSTEM_PROMPT, buildRewritePrompt } from '../config/prompts.js'
 // Cerebras gpt-oss-120b free tier: 5 RPM, 30k TPM, 1M TPD
 const CEREBRAS_SLEEP_MS = 15000; // 15s = 4 RPM, safely under 5 RPM
 
-let cerebrasBlockedUntil = 0;
-
-// NVIDIA fallback: 40 RPM
-const NVIDIA_SLEEP_MS = 3000;
-
 /**
  * Attempt to repair and parse malformed JSON from the AI.
  * Handles: truncated JSON, trailing commas, unclosed braces.
@@ -111,89 +106,25 @@ async function rewriteWithCerebras(title, content) {
 }
 
 /**
- * Fallback: NVIDIA Mistral Small (40 RPM, used only when Cerebras fails)
- */
-async function rewriteWithNvidia(title, content) {
-  const apiKey = process.env.NVIDIA_API_KEY;
-  if (!apiKey) throw new Error('NVIDIA_API_KEY not configured in .env');
-
-  const userPrompt = buildRewritePrompt(title, content);
-
-  const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
-    model: 'mistralai/mistral-small-4-119b-2603',
-    messages: [
-      { role: 'system', content: REWRITE_SYSTEM_PROMPT },
-      { role: 'user', content: userPrompt }
-    ],
-    temperature: 0.7,
-    max_tokens: 1200,
-    response_format: { type: 'json_object' }
-  }, {
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    timeout: 60000
-  });
-
-  const responseText = response.data?.choices?.[0]?.message?.content;
-  if (!responseText) throw new Error('Empty response from NVIDIA');
-
-  await sleep(NVIDIA_SLEEP_MS);
-
-  return parseAIResponse(responseText);
-}
-
-/**
- * Rewrite a single article.
- * Tries Cerebras first, falls back to NVIDIA Mistral on any error.
+ * Rewrite a single article using Cerebras.
  */
 export async function rewriteArticle(title, content, maxRetries = 3) {
-  // ── Attempt Cerebras (primary) ──
-  if (Date.now() > cerebrasBlockedUntil) {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const result = await rewriteWithCerebras(title, content);
-        console.log(`[AIRewriter] Cerebras OK: "${title.substring(0, 50)}"`);
-        return result;
-      } catch (error) {
-        const isRateLimit = error.status === 429 || error.message?.includes('429') || error.message?.includes('rate_limit');
-
-        if (isRateLimit) {
-          console.log(`[AIRewriter] Cerebras rate limit hit. Blocking Cerebras for 60s and falling back to NVIDIA.`);
-          cerebrasBlockedUntil = Date.now() + 60000; // Block for 60 seconds
-          break; // Immediately exit Cerebras loop, go to NVIDIA
-        }
-
-        console.warn(`[AIRewriter] Cerebras failed (attempt ${attempt}): ${error.message?.substring(0, 150)}`);
-        if (attempt === maxRetries) break;
-      }
-    }
-  } else {
-    console.log(`[AIRewriter] Cerebras is currently in rate-limit cooldown. Skipping to NVIDIA.`);
-  }
-
-  // ── Fallback: NVIDIA Mistral ──
-  console.log(`[AIRewriter] Falling back to NVIDIA Mistral for "${title.substring(0, 50)}"`);
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const result = await rewriteWithNvidia(title, content);
-      console.log(`[AIRewriter] NVIDIA fallback OK: "${title.substring(0, 50)}"`);
+      const result = await rewriteWithCerebras(title, content);
+      console.log(`[AIRewriter] Cerebras OK: "${title.substring(0, 50)}"`);
       return result;
     } catch (error) {
-      const isRateLimit = error.response?.status === 429 || error.message?.includes('429');
+      const isRateLimit = error.status === 429 || error.message?.includes('429') || error.message?.includes('rate_limit');
 
       if (isRateLimit && attempt < maxRetries) {
-        const wait = 15000 * Math.pow(2, attempt - 1);
-        console.log(`[AIRewriter] NVIDIA rate limit, waiting ${wait / 1000}s`);
-        await sleep(wait);
+        console.log(`[AIRewriter] Cerebras rate limit hit. Waiting 60s before retry (attempt ${attempt}/${maxRetries}).`);
+        await sleep(60000);
         continue;
       }
 
-      console.error(`[AIRewriter] NVIDIA fallback failed (attempt ${attempt}): ${error.message?.substring(0, 150)}`);
-      throw error;
+      console.warn(`[AIRewriter] Cerebras failed (attempt ${attempt}): ${error.message?.substring(0, 150)}`);
+      if (attempt === maxRetries) throw error;
     }
   }
-
-  throw new Error('Max retries exceeded on both Cerebras and NVIDIA');
 }
