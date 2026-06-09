@@ -55,7 +55,8 @@ function renderMarkdown(md: string): string {
 
   // Lists (unordered)
   html = html.replace(/^[*-] (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
+  html = html.replace(/(<\/li>)\s+(<li>)/g, '$1\n$2'); // collapse blank lines between bullets
+  html = html.replace(/(<li>[\s\S]*?<\/li>\n?)+/g, (match) => `<ul>${match.trim()}</ul>`);
 
   // Paragraphs (wrap remaining non-tag lines)
   html = html
