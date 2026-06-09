@@ -95,7 +95,7 @@ async function rewriteWithCerebras(title, content) {
       { role: 'user', content: userPrompt }
     ],
     temperature: 0.7,
-    max_tokens: 1200,
+    max_tokens: 4096,   // Reasoning model: needs tokens for thinking + full JSON response
     response_format: { type: 'json_object' }
   });
 
