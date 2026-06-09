@@ -16,6 +16,7 @@
   "license": "ISC",
   "description": "Newser backend - AI-powered news aggregation API",
   "dependencies": {
+    "@cerebras/cerebras_cloud_sdk": "^1.64.1",
     "@extractus/article-extractor": "^8.1.0",
     "@fastify/cors": "^11.2.0",
     "@google/generative-ai": "^0.24.1",
