@@ -24,8 +24,6 @@ const RENDER_SOURCES = [];
  */
 export async function scrapeArticle(url, sourceConfig = null) {
   try {
-    console.log(`[Scraper] Using fast local extractor for ${url}...`);
-
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -35,8 +33,25 @@ export async function scrapeArticle(url, sourceConfig = null) {
       signal: AbortSignal.timeout(10000)
     });
 
+    // Bail early if the page returned an error or non-HTML response
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('html')) {
+      throw new Error(`Non-HTML response: ${contentType}`);
+    }
+
     const html = await response.text();
-    const extracted = await extract(html, url);
+
+    // Isolate Readability/DOM errors so they produce a clean fallback
+    let extracted;
+    try {
+      extracted = await extract(html, url);
+    } catch (parseErr) {
+      throw new Error(`Parser failed: ${parseErr.message}`);
+    }
 
     if (!extracted || !extracted.content) {
       throw new Error('No content extracted');
