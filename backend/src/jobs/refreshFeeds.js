@@ -117,10 +117,16 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
           finalImageUrl = scraped.image_url;
         }
       } else {
-        logger.warn(`[AIRewrite] Scraper returned insufficient content, falling back to XML summary.`);
+        // Scraper returned no usable content — mark failed, retry next cycle
+        logger.warn(`[AIRewrite] Scraper returned no content for "${article.title.substring(0, 50)}". Marking failed.`);
+        await supabase.from('articles').update({ rewrite_status: 'failed' }).eq('id', article.id);
+        continue;
       }
     } catch (err) {
-      logger.warn(`[AIRewrite] Scraper failed: ${err.message}. Falling back to XML summary.`);
+      // Scraper threw (404, timeout, parse error) — mark failed, retry next cycle
+      logger.warn(`[AIRewrite] Scraper failed for "${article.title.substring(0, 50)}": ${err.message}. Marking failed.`);
+      await supabase.from('articles').update({ rewrite_status: 'failed' }).eq('id', article.id);
+      continue;
     }
 
     let aiResult = null;
