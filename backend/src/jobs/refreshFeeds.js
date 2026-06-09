@@ -257,6 +257,20 @@ export async function refreshAllFeeds(fastify) {
   }
   allFetched = dedupedFetched;
 
+  // ── Phase 1.6: Age filter — drop articles older than 24 hours ──
+  const maxAgeMs = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const freshArticles = allFetched.filter(article => {
+    if (!article.published_at) return true; // keep if no date (can't tell)
+    const age = now - new Date(article.published_at).getTime();
+    return age <= maxAgeMs;
+  });
+  const staleDropped = allFetched.length - freshArticles.length;
+  if (staleDropped > 0) {
+    logger.info(`[RefreshFeeds] Phase 1.6: Dropped ${staleDropped} articles older than 24h`);
+  }
+  allFetched = freshArticles;
+
   // ── Phase 2: Exact URL deduplication against DB ──
   const urls = allFetched.map(a => a.url).filter(Boolean);
   const existingUrls = new Set();
