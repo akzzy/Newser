@@ -136,34 +136,13 @@ export const sources = [
     is_active: true
   },
   {
-    name: 'Al Jazeera',
-    slug: 'al-jazeera',
-    feed_url: 'https://www.aljazeera.com/xml/rss/all.xml',
-    website_url: 'https://www.aljazeera.com',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://aljazeera.com&size=128',
-    color: '#F9A01B',
-    category: 'world',
-    fetch_method: 'rss',
-  },
-  {
-    name: 'BBC News',
-    slug: 'bbc-news',
-    feed_url: 'http://feeds.bbci.co.uk/news/world/rss.xml',
-    website_url: 'https://www.bbc.com/news/world',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://bbc.com&size=128',
-    color: '#B80000',
-    category: 'world',
-    fetch_method: 'rss',
-    is_active: true
-  },
-  {
-    name: 'NPR',
-    slug: 'npr',
-    feed_url: 'https://feeds.npr.org/1004/rss.xml',
-    website_url: 'https://www.npr.org/sections/world/',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://npr.org&size=128',
-    color: '#222222',
-    category: 'world',
+    name: 'Android Central',
+    slug: 'android-central',
+    feed_url: 'https://www.androidcentral.com/feed',
+    website_url: 'https://www.androidcentral.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://androidcentral.com&size=128',
+    color: '#A4C639',
+    category: 'mobile',
     fetch_method: 'rss',
     is_active: true
   },
@@ -235,13 +214,13 @@ export const sources = [
     is_active: true
   },
   {
-    name: 'The Guardian UK',
-    slug: 'the-guardian-uk',
-    feed_url: 'https://www.theguardian.com/uk/rss',
-    website_url: 'https://www.theguardian.com/uk',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://theguardian.com&size=128',
-    color: '#052962',
-    category: 'world',
+    name: '9to5Mac',
+    slug: '9to5mac',
+    feed_url: 'https://9to5mac.com/feed/',
+    website_url: 'https://9to5mac.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://9to5mac.com&size=128',
+    color: '#E2E2E2',
+    category: 'mobile',
     fetch_method: 'rss',
     is_active: true
   },
@@ -345,13 +324,13 @@ export const sources = [
     is_active: true
   },
   {
-    name: 'BBC Football',
-    slug: 'bbc-football',
-    feed_url: 'https://feeds.bbci.co.uk/sport/football/rss.xml',
-    website_url: 'https://www.bbc.com/sport/football',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://bbc.com&size=128',
-    color: '#FFD230',
-    category: 'sports',
+    name: 'MacRumors',
+    slug: 'macrumors',
+    feed_url: 'https://feeds.macrumors.com/MacRumors-All',
+    website_url: 'https://www.macrumors.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://macrumors.com&size=128',
+    color: '#212121',
+    category: 'mobile',
     fetch_method: 'rss',
     is_active: true
   }
