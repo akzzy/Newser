@@ -197,17 +197,42 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
  */
 export async function refreshAllFeeds(fastify) {
   const startTime = Date.now();
-  fastify.log.info('[RefreshFeeds] Starting feed refresh cycle...');
-
   const supabase = fastify.supabase;
   const logger = fastify.log;
+
+  // ── Database Lock: Prevent concurrent instances (cPanel Passenger spawns multiple workers) ──
+  const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { data: activeRuns } = await supabase
+    .from('cron_runs')
+    .select('id')
+    .gte('started_at', tenMinsAgo)
+    .is('completed_at', null)
+    .limit(1);
+
+  if (activeRuns && activeRuns.length > 0) {
+    logger.warn('[RefreshFeeds] ⚠️ Another cron process is already running. Skipping this instance to prevent duplicates.');
+    return;
+  }
+
+  // Acquire lock
+  const { data: lockRecord, error: lockErr } = await supabase
+    .from('cron_runs')
+    .insert({ started_at: new Date(startTime).toISOString() })
+    .select('id')
+    .single();
+
+  if (lockErr || !lockRecord) {
+    logger.error(`[RefreshFeeds] Failed to acquire lock: ${lockErr?.message || 'Unknown error'}`);
+    return;
+  }
+
+  fastify.log.info('[RefreshFeeds] Starting feed refresh cycle (Lock Acquired)...');
 
   // Fetch DB sources to map source_id to name for logging
   const { data: dbSources } = await supabase.from('sources').select('id, name');
   const dbSourceIdToName = new Map((dbSources || []).map(s => [s.id, s.name]));
 
   // Ping scraper microservice to prevent Render from putting it to sleep
-  // We do this immediately so it can wake up while Phase 1 is running
   pingScraper().catch(() => {});
 
   // ── Phase 1: Fetch all feeds into a single article pool ──
@@ -477,7 +502,12 @@ export async function refreshAllFeeds(fastify) {
   cycleStats.ai_failed = rewriteStats.failedCount;
 
   cycleStats.completed_at = new Date().toISOString();
-  await supabase.from('cron_runs').insert(cycleStats);
+  
+  // Update the lock record with final stats
+  await supabase
+    .from('cron_runs')
+    .update(cycleStats)
+    .eq('id', lockRecord.id);
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   logger.info(`[RefreshFeeds] Cycle complete. ${insertedCount} stored, ${rewriteStats.successCount} rewritten, ${skippedCount} duplicates dropped in ${elapsed}s`);
