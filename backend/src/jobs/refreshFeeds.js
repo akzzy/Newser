@@ -177,9 +177,9 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
       }
     }
 
-    // 5-second delay between requests (~12 RPM, under Gemini's 15 RPM free tier limit)
+    // 12.5-second delay between requests (~4.8 RPM) to safely stay under Cerebras's 5 RPM limit
     if (i < pendingArticles.length - 1) {
-      await sleep(5000);
+      await sleep(12500);
     }
   }
 
