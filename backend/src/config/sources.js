@@ -136,13 +136,13 @@ export const sources = [
     is_active: true
   },
   {
-    name: 'Android Central',
-    slug: 'android-central',
-    feed_url: 'https://www.androidcentral.com/feed',
-    website_url: 'https://www.androidcentral.com',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://androidcentral.com&size=128',
-    color: '#A4C639',
-    category: 'mobile',
+    name: 'Vox World',
+    slug: 'vox-world',
+    feed_url: 'https://www.vox.com/rss/world/index.xml',
+    website_url: 'https://www.vox.com/world',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://vox.com&size=128',
+    color: '#FFF200',
+    category: 'world',
     fetch_method: 'rss',
     is_active: true
   },
@@ -213,17 +213,7 @@ export const sources = [
     fetch_method: 'rss',
     is_active: true
   },
-  {
-    name: '9to5Mac',
-    slug: '9to5mac',
-    feed_url: 'https://9to5mac.com/feed/',
-    website_url: 'https://9to5mac.com',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://9to5mac.com&size=128',
-    color: '#E2E2E2',
-    category: 'mobile',
-    fetch_method: 'rss',
-    is_active: true
-  },
+
   {
     name: 'Space Daily',
     slug: 'space-daily',
@@ -324,13 +314,13 @@ export const sources = [
     is_active: true
   },
   {
-    name: 'MacRumors',
-    slug: 'macrumors',
-    feed_url: 'https://feeds.macrumors.com/MacRumors-All',
-    website_url: 'https://www.macrumors.com',
-    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://macrumors.com&size=128',
-    color: '#212121',
-    category: 'mobile',
+    name: 'FourFourTwo',
+    slug: 'fourfourtwo',
+    feed_url: 'https://www.fourfourtwo.com/feeds.xml',
+    website_url: 'https://www.fourfourtwo.com',
+    logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://fourfourtwo.com&size=128',
+    color: '#E3001B',
+    category: 'sports',
     fetch_method: 'rss',
     is_active: true
   }

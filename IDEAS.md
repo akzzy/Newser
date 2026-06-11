@@ -33,3 +33,10 @@ This document tracks upcoming feature ideas and architectural upgrades for the N
 **Location:** Backend or CDN Level
 **Concept:** Automatically compress and resize massive, multi-megabyte high-res images from source publishers to ensure lightning-fast mobile load times without sacrificing visual quality.
 - **Mechanism:** Implement a lightweight image proxy (or utilize Next.js Image Optimization / Cloudinary). When the frontend requests an article image, the proxy intercepts the request, converts the original heavy image (e.g., PNG/JPG) to a highly compressed modern format like WebP or AVIF, resizes it to fit the device's exact dimensions, and heavily caches the result for instant delivery.
+
+## 7. Vector Clustering for Article Compression (Embeddings + K-Means)
+**Location:** Backend — Pre-processing pipeline before AI rewrite
+**Concept:** Use a local embedding model to convert each sentence of a scraped article into a vector, cluster them with K-Means, and pick the most representative sentence from each cluster. This produces a semantically-aware extractive summary that captures all key themes of the article while drastically reducing token usage.
+- **Why it's better than simple truncation:** It understands the *meaning* of sentences rather than just their position. A critical detail buried in paragraph 8 won't be lost — the algorithm will surface it if it represents a unique topic cluster.
+- **Hosting:** Deploy the embedding model (e.g., `sentence-transformers/all-MiniLM-L6-v2`) as a free microservice on **Hugging Face Spaces**. The backend sends the raw article text to the HF Space, receives back the compressed summary, and then forwards that to Cerebras for the creative rewrite.
+- **Trade-offs:** More complex to set up, adds a network hop to HF Spaces, and is overkill for short news articles. Best suited if we scale to long-form investigative pieces or research papers.
