@@ -123,13 +123,14 @@ export async function askAIIfDuplicate(title1, title2) {
       const text = result.choices?.[0]?.message?.content?.trim();
       if (!text) return false;
 
-      // Strict delay to respect 40 RPS limit
-      await sleep(3000);
-
-    const parsed = JSON.parse(text);
-    return parsed.same === true;
-  } catch (err) {
-    const isRateLimit = err.response?.status === 429 || err.message?.includes('429') || err.message?.includes('rate');
+      const parsed = JSON.parse(text);
+      
+      // Strict delay between AI checks to prevent dumping requests together
+      await sleep(5000);
+      
+      return parsed.same === true;
+    } catch (err) {
+      const isRateLimit = err.response?.status === 429 || err.message?.includes('429') || err.message?.includes('rate');
     
     if (isRateLimit && attempt < maxRetries) {
       const waitTime = 10000 * attempt;
@@ -189,7 +190,7 @@ export async function checkDuplicate(candidateTitle, knownTitles, logger = conso
     }
 
     // Strict delay between AI calls to avoid 429s (if it didn't wait inside the function)
-    await sleep(3000);
+    await sleep(5000);
   }
 
   return { isDuplicate: false, matchedTitle: null, method: 'none', score: 0 };
