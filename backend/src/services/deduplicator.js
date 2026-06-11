@@ -48,7 +48,7 @@ const SYNONYMS = {
 
 // ── Thresholds ──
 const DEFINITE_DUPLICATE_THRESHOLD = 0.50;  // High confidence — skip AI, drop it
-const GRAY_ZONE_THRESHOLD = 0.30;           // Optimized: 0.20 was too broad and triggered too many AI checks. 0.30 catches real edge cases without spamming the API.
+const GRAY_ZONE_THRESHOLD = 0.35;           // Optimized: 0.35 catches real edge cases without spamming the API.
 
 // ── NVIDIA API Key Helper ──
 function getApiKey() {
