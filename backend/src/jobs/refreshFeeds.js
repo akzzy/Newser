@@ -201,11 +201,11 @@ export async function refreshAllFeeds(fastify) {
   const logger = fastify.log;
 
   // ── Database Lock: Prevent concurrent instances (cPanel Passenger spawns multiple workers) ──
-  const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
   const { data: activeRuns } = await supabase
     .from('cron_runs')
     .select('id')
-    .gte('started_at', tenMinsAgo)
+    .gte('started_at', thirtyMinsAgo)
     .is('completed_at', null)
     .limit(1);
 
