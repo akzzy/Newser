@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { exec } from 'child_process';
 
 export default async function adminRoutes(fastify, options) {
   const supabase = fastify.supabase;
@@ -18,6 +19,17 @@ export default async function adminRoutes(fastify, options) {
     } catch (err) {
       return { logs: [`Error reading logs: ${err.message}`] };
     }
+  });
+
+  // GET /api/admin/murder
+  // Emergency kill switch for cPanel orphan processes
+  fastify.get('/murder', async (request, reply) => {
+    exec('killall node || pkill -f node', (error, stdout, stderr) => {
+      // We might not even be able to return a response if the process is killed instantly,
+      // but if we do, log it.
+      fastify.log.warn(`Murder command executed. Output: ${stdout} ${stderr}`);
+    });
+    return { success: true, message: 'Assassination order sent. All Node processes will die within 1 second.' };
   });
 
   // GET /api/admin/dashboard
