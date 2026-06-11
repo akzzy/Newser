@@ -48,7 +48,7 @@ const SYNONYMS = {
 
 // ── Thresholds ──
 const DEFINITE_DUPLICATE_THRESHOLD = 0.50;  // High confidence — skip AI, drop it
-const GRAY_ZONE_THRESHOLD = 0.20;            // Re-enabled: AI handles edge cases
+const GRAY_ZONE_THRESHOLD = 0.30;           // Optimized: 0.20 was too broad and triggered too many AI checks. 0.30 catches real edge cases without spamming the API.
 
 // ── NVIDIA API Key Helper ──
 function getApiKey() {
@@ -116,7 +116,7 @@ export async function askAIIfDuplicate(title1, title2) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        timeout: 15000  // 15s timeout — prevents cPanel hanging indefinitely
+        timeout: 15000  // 15s timeout
       });
 
       const result = response.data;
@@ -131,18 +131,18 @@ export async function askAIIfDuplicate(title1, title2) {
       return parsed.same === true;
     } catch (err) {
       const isRateLimit = err.response?.status === 429 || err.message?.includes('429') || err.message?.includes('rate');
-    
-    if (isRateLimit && attempt < maxRetries) {
-      const waitTime = 10000 * attempt;
-      console.log(`[Deduplicator] Rate limited on "${title1.substring(0, 30)}...", retrying in ${waitTime/1000}s`);
-      await sleep(waitTime);
-      continue;
+      
+      if (isRateLimit && attempt < maxRetries) {
+        const waitTime = 10000 * attempt;
+        console.log(`[Deduplicator] Rate limited on "${title1.substring(0, 30)}...", retrying in ${waitTime/1000}s`);
+        await sleep(waitTime);
+        continue;
+      }
+      console.error(`[Deduplicator] AI check failed: ${err.message}`);
+      return false;
     }
-    console.error(`[Deduplicator] AI check failed: ${err.message}`);
-    return false;
   }
-}
-return false;
+  return false;
 }
 
 // ── Sleep helper ──
@@ -152,45 +152,41 @@ function sleep(ms) {
 
 /**
  * Check if a candidate title is a duplicate of any title in the knownTitles list.
- *
- * Strategy:
- *   - Token score < 0.20 → skip (definitely different)
- *   - Token score >= 0.20 → ask AI for the final call
- *
- * This keeps AI calls minimal (only for pairs with some token overlap)
- * while letting the AI handle all the nuanced decisions.
- *
- * @param {string} candidateTitle - The new article title to check
- * @param {string[]} knownTitles - List of titles already accepted
- * @param {object} logger - Logger instance (optional)
- * @returns {{ isDuplicate: boolean, matchedTitle: string|null, method: string, score: number }}
  */
 export async function checkDuplicate(candidateTitle, knownTitles, logger = console) {
-  for (const knownTitle of knownTitles) {
-    const score = calculateTitleSimilarity(candidateTitle, knownTitle);
+  // 1. Calculate scores for all known titles
+  const scoredMatches = knownTitles.map(knownTitle => {
+    return {
+      knownTitle,
+      score: calculateTitleSimilarity(candidateTitle, knownTitle)
+    };
+  });
 
-    // Fast skip: no meaningful token overlap
-    if (score < GRAY_ZONE_THRESHOLD) continue;
+  // 2. Filter out anything below the Gray Zone and sort highest score to lowest
+  const potentialMatches = scoredMatches
+    .filter(m => m.score >= GRAY_ZONE_THRESHOLD)
+    .sort((a, b) => b.score - a.score);
 
-    // Fast confirm: almost identical tokens, skip AI and assume duplicate
-    if (score >= DEFINITE_DUPLICATE_THRESHOLD) {
-      logger.info?.(`[Dedup] Fast confirm (score ${score.toFixed(2)} > ${DEFINITE_DUPLICATE_THRESHOLD}): "${candidateTitle}"`);
-      return { isDuplicate: true, matchedTitle: knownTitle, method: 'token', score };
+  // 3. Process matches in order of likelihood
+  for (const match of potentialMatches) {
+    // Fast confirm: almost identical tokens, skip AI
+    if (match.score >= DEFINITE_DUPLICATE_THRESHOLD) {
+      logger.info?.(`[Dedup] Fast confirm (score ${match.score.toFixed(2)} > ${DEFINITE_DUPLICATE_THRESHOLD}): "${candidateTitle}"`);
+      return { isDuplicate: true, matchedTitle: match.knownTitle, method: 'token', score: match.score };
     }
 
-    // Ask AI for the final verdict
-    logger.info?.(`[Dedup] Checking (token score: ${score.toFixed(2)}): "${candidateTitle}" ↔ "${knownTitle}"`);
-    const aiSaysSame = await askAIIfDuplicate(candidateTitle, knownTitle);
+    // Gray Zone: Ask AI for the final verdict
+    logger.info?.(`[Dedup] Checking (token score: ${match.score.toFixed(2)}): "${candidateTitle}" ↔ "${match.knownTitle}"`);
+    const aiSaysSame = await askAIIfDuplicate(candidateTitle, match.knownTitle);
 
     if (aiSaysSame) {
       logger.info?.(`[Dedup] ✓ AI confirmed duplicate: "${candidateTitle}"`);
-      return { isDuplicate: true, matchedTitle: knownTitle, method: 'ai', score };
+      return { isDuplicate: true, matchedTitle: match.knownTitle, method: 'ai', score: match.score };
     } else {
       logger.info?.(`[Dedup] ✗ AI says different story`);
     }
-
-    // Strict delay between AI calls to avoid 429s (if it didn't wait inside the function)
-    await sleep(5000);
+    
+    // Note: askAIIfDuplicate already sleeps for 5s internally, so no need for double sleep here!
   }
 
   return { isDuplicate: false, matchedTitle: null, method: 'none', score: 0 };
