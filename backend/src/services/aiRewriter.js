@@ -30,9 +30,9 @@ function blockCerebrasForDay() {
 }
 
 // ── Content compression constants ──
-const MAX_WORDS = 500;           // Hard cap: never send more than 500 words to LLM
+const MAX_WORDS = 300;           // Hard cap: never send more than 300 words to LLM
 const MAX_PARAGRAPHS = 5;        // Soft cap: take first 5 paragraphs (inverted pyramid)
-const COMPRESS_THRESHOLD = 500;  // Only compress if article exceeds this word count
+const COMPRESS_THRESHOLD = 300;  // Only compress if article exceeds this word count
 
 /**
  * Compress article content before sending to LLM.
@@ -159,6 +159,7 @@ async function rewriteWithCerebras(title, content) {
       { role: 'user', content: userPrompt }
     ],
     temperature: 0.7,
+    reasoning_effort: 'low',
     max_tokens: 4096,
     response_format: { type: 'json_object' }
   });
