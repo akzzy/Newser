@@ -79,7 +79,7 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
 
   const { data: pendingArticles, error } = await supabase
     .from('articles')
-    .select('id, title, original_content, url, image_url, source_id')
+    .select('id, title, original_content, url, image_url, source_id, rewrite_status')
     .in('rewrite_status', ['pending', 'failed'])
     .gte('published_at', cutoff)
     .order('published_at', { ascending: false })
@@ -117,15 +117,17 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
           finalImageUrl = scraped.image_url;
         }
       } else {
-        // Scraper returned no usable content — mark failed, retry next cycle
-        logger.warn(`[AIRewrite] Scraper returned no content for "${article.title.substring(0, 50)}". Marking failed.`);
-        await supabase.from('articles').update({ rewrite_status: 'failed' }).eq('id', article.id);
+        // Scraper returned no usable content
+        const nextFailStatus = article.rewrite_status === 'pending' ? 'failed' : 'permanently_failed';
+        logger.warn(`[AIRewrite] Scraper returned no content for "${article.title.substring(0, 50)}". Marking ${nextFailStatus}.`);
+        await supabase.from('articles').update({ rewrite_status: nextFailStatus }).eq('id', article.id);
         continue;
       }
     } catch (err) {
-      // Scraper threw (404, timeout, parse error) — mark failed, retry next cycle
-      logger.warn(`[AIRewrite] Scraper failed for "${article.title.substring(0, 50)}": ${err.message}. Marking failed.`);
-      await supabase.from('articles').update({ rewrite_status: 'failed' }).eq('id', article.id);
+      // Scraper threw (404, timeout, parse error)
+      const nextFailStatus = article.rewrite_status === 'pending' ? 'failed' : 'permanently_failed';
+      logger.warn(`[AIRewrite] Scraper failed for "${article.title.substring(0, 50)}": ${err.message}. Marking ${nextFailStatus}.`);
+      await supabase.from('articles').update({ rewrite_status: nextFailStatus }).eq('id', article.id);
       continue;
     }
 
@@ -142,10 +144,11 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
         source_id: article.source_id
       });
       
-      // Mark as failed so we can retry later (or drop)
+      // Mark as failed so we can retry later (or drop after 2 tries)
+      const nextFailStatus = article.rewrite_status === 'pending' ? 'failed' : 'permanently_failed';
       await supabase
         .from('articles')
-        .update({ rewrite_status: 'failed' })
+        .update({ rewrite_status: nextFailStatus })
         .eq('id', article.id);
         
       // Increment failed count and move to next article
