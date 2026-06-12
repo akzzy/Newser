@@ -234,6 +234,11 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const result = await rewriteWithCerebras(title, compressed);
+        if (result && Array.isArray(result.ai_tags)) {
+          // Keep it to 3 tags max to not overflow the UI, replacing the last tag if necessary
+          if (result.ai_tags.length >= 3) result.ai_tags.pop();
+          result.ai_tags.unshift('⚡ Cerebras');
+        }
         console.log(`[AIRewriter] ✅ Cerebras OK: "${title.substring(0, 50)}"`);
         return result;
       } catch (error) {
@@ -264,6 +269,10 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const result = await rewriteWithNvidia(title, compressed);
+      if (result && Array.isArray(result.ai_tags)) {
+        if (result.ai_tags.length >= 3) result.ai_tags.pop();
+        result.ai_tags.unshift('🟢 NVIDIA');
+      }
       console.log(`[AIRewriter] ✅ NVIDIA OK: "${title.substring(0, 50)}"`);
       return result;
     } catch (error) {
