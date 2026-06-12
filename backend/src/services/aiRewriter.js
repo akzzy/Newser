@@ -188,15 +188,16 @@ async function rewriteWithNvidia(title, content) {
   const userPrompt = buildRewritePrompt(title, content);
 
   const completion = await client.chat.completions.create({
-    model: 'meta/llama-3.3-70b-instruct',
+    model: 'mistralai/mistral-nemotron',
     messages: [
       { role: 'system', content: REWRITE_SYSTEM_PROMPT },
       { role: 'user', content: userPrompt }
     ],
-    temperature: 0.7,
-    top_p: 1,
+    temperature: 0.6,
+    top_p: 0.7,
     max_tokens: 4096,
-    stream: false
+    stream: false,
+    response_format: { type: 'json_object' }
   });
 
   const responseText = completion.choices?.[0]?.message?.content;
