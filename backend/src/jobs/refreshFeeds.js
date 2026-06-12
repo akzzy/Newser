@@ -133,7 +133,7 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
 
     let aiResult = null;
     try {
-      aiResult = await rewriteArticle(article.title, finalContent);
+      aiResult = await rewriteArticle(article.title, finalContent, logger);
     } catch (err) {
       logger.error(`[AIRewrite] Failed for "${article.title}": ${err.message}`);
       

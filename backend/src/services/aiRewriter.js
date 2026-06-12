@@ -174,7 +174,7 @@ async function rewriteWithCerebras(title, content) {
 }
 
 /**
- * Backup: NVIDIA gpt-oss-120b (no token limit, only rate limit, but unreliable under heavy traffic)
+ * Backup: NVIDIA meta/llama-3.3-70b-instruct (no token limit, only rate limit, but unreliable under heavy traffic)
  */
 async function rewriteWithNvidia(title, content) {
   const apiKey = process.env.NVIDIA_API_KEY;
@@ -188,7 +188,7 @@ async function rewriteWithNvidia(title, content) {
   const userPrompt = buildRewritePrompt(title, content);
 
   const completion = await client.chat.completions.create({
-    model: 'openai/gpt-oss-120b',
+    model: 'meta/llama-3.3-70b-instruct',
     messages: [
       { role: 'system', content: REWRITE_SYSTEM_PROMPT },
       { role: 'user', content: userPrompt }
@@ -202,8 +202,8 @@ async function rewriteWithNvidia(title, content) {
   const responseText = completion.choices?.[0]?.message?.content;
   if (!responseText) throw new Error('Empty response from NVIDIA');
 
-  // 3s sleep between NVIDIA requests
-  await sleep(NVIDIA_SLEEP_MS);
+  // 10s sleep between NVIDIA requests to stay under 40 RPM limit
+  await sleep(10000);
 
   return parseAIResponse(responseText);
 }
@@ -212,60 +212,23 @@ async function rewriteWithNvidia(title, content) {
  * Rewrite a single article.
  * 
  * Strategy:
- *   1. Try Cerebras (primary — fast, reliable, 1M tokens/day)
- *   2. If Cerebras hits DAILY token limit → block it, switch to NVIDIA for the rest of the day
- *   3. If Cerebras hits per-minute rate limit → wait 60s, retry Cerebras
- *   4. If NVIDIA also fails → mark article as failed, retry next cron cycle
+ *   1. Try NVIDIA (primary — 40 RPM, no token limit)
+ *   2. If NVIDIA fails (traffic/rate limit) → Fallback to Cerebras
+ *   3. If Cerebras hits daily token limit → permanently block Cerebras for the day
  * 
  * Content is automatically compressed before hitting any LLM to save tokens.
  */
-export async function rewriteArticle(title, content, maxRetries = 3) {
+export async function rewriteArticle(title, content, logger = console, maxRetries = 3) {
   // ── Compress content before sending to LLM ──
   const originalWordCount = content?.split(/\s+/).length || 0;
   const compressed = compressContent(content);
   const compressedWordCount = compressed.split(/\s+/).length;
   
   if (originalWordCount !== compressedWordCount) {
-    console.log(`[AIRewriter] Compressed: ${originalWordCount} → ${compressedWordCount} words (${Math.round((1 - compressedWordCount / originalWordCount) * 100)}% reduction)`);
+    logger.info?.(`[AIRewriter] Compressed: ${originalWordCount} → ${compressedWordCount} words (${Math.round((1 - compressedWordCount / originalWordCount) * 100)}% reduction)`);
   }
 
-  // ── Try Cerebras first (unless daily-blocked) ──
-  if (!isCerebrasBlocked()) {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const result = await rewriteWithCerebras(title, compressed);
-        if (result && Array.isArray(result.ai_tags)) {
-          // Keep it to 3 tags max to not overflow the UI, replacing the last tag if necessary
-          if (result.ai_tags.length >= 3) result.ai_tags.pop();
-          result.ai_tags.unshift('⚡ Cerebras');
-        }
-        console.log(`[AIRewriter] ✅ Cerebras OK: "${title.substring(0, 50)}"`);
-        return result;
-      } catch (error) {
-        const errMsg = error.message || '';
-        const isDailyLimit = errMsg.includes('Tokens per day') || errMsg.includes('tokens per day') || errMsg.includes('daily');
-        const isRateLimit = error.status === 429 || errMsg.includes('429') || errMsg.includes('rate_limit');
-
-        if (isDailyLimit) {
-          // Daily token cap hit — block Cerebras, fall through to NVIDIA
-          blockCerebrasForDay();
-          break;
-        }
-
-        if (isRateLimit && attempt < maxRetries) {
-          console.log(`[AIRewriter] Cerebras per-minute rate limit. Waiting 60s (attempt ${attempt}/${maxRetries}).`);
-          await sleep(60000);
-          continue;
-        }
-
-        console.warn(`[AIRewriter] Cerebras failed (attempt ${attempt}): ${errMsg.substring(0, 150)}`);
-        if (attempt === maxRetries) break; // Fall through to NVIDIA
-      }
-    }
-  }
-
-  // ── Fallback: NVIDIA (no token limit, but may be unavailable) ──
-  console.log(`[AIRewriter] Trying NVIDIA backup for: "${title.substring(0, 50)}"`);
+  // ── Primary: NVIDIA (no token limit) ──
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const result = await rewriteWithNvidia(title, compressed);
@@ -273,15 +236,50 @@ export async function rewriteArticle(title, content, maxRetries = 3) {
         if (result.ai_tags.length >= 3) result.ai_tags.pop();
         result.ai_tags.unshift('🟢 NVIDIA');
       }
-      console.log(`[AIRewriter] ✅ NVIDIA OK: "${title.substring(0, 50)}"`);
+      logger.info?.(`[AIRewriter] ✅ NVIDIA OK: "${title.substring(0, 50)}"`);
       return result;
     } catch (error) {
       const errMsg = error.message || '';
-      console.warn(`[AIRewriter] NVIDIA failed (attempt ${attempt}): ${errMsg.substring(0, 150)}`);
+      logger.warn?.(`[AIRewriter] NVIDIA failed (attempt ${attempt}): ${errMsg.substring(0, 150)}`);
       
       if (attempt < 2) {
         await sleep(5000); // Brief wait before NVIDIA retry
         continue;
+      }
+    }
+  }
+
+  // ── Fallback: Cerebras ──
+  if (!isCerebrasBlocked()) {
+    logger.info?.(`[AIRewriter] Trying Cerebras backup for: "${title.substring(0, 50)}"`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await rewriteWithCerebras(title, compressed);
+        if (result && Array.isArray(result.ai_tags)) {
+          if (result.ai_tags.length >= 3) result.ai_tags.pop();
+          result.ai_tags.unshift('⚡ Cerebras');
+        }
+        logger.info?.(`[AIRewriter] ✅ Cerebras OK: "${title.substring(0, 50)}"`);
+        return result;
+      } catch (error) {
+        const errMsg = error.message || '';
+        const isDailyLimit = errMsg.includes('Tokens per day') || errMsg.includes('tokens per day') || errMsg.includes('daily');
+        const isRateLimit = error.status === 429 || errMsg.includes('429') || errMsg.includes('rate_limit');
+
+        if (isDailyLimit) {
+          logger.warn?.(`[AIRewriter] Cerebras Daily Limit Reached. Blocking for today.`);
+          blockCerebrasForDay();
+          break;
+        }
+
+        if (isRateLimit && attempt < maxRetries) {
+          logger.info?.(`[AIRewriter] Cerebras per-minute rate limit. Waiting 60s (attempt ${attempt}/${maxRetries}).`);
+          await sleep(60000);
+          continue;
+        }
+
+        logger.warn?.(`[AIRewriter] Cerebras failed (attempt ${attempt}): ${errMsg.substring(0, 150)}`);
+        if (attempt === maxRetries) break;
       }
     }
   }
