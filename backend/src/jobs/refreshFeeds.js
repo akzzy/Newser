@@ -106,6 +106,32 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
   // Only rewrite articles from the last 24 hours
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+  // ── Crash Recovery: Reset stale in_progress articles (>10 min) ──
+  const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { data: staleInProgress } = await supabase
+    .from('articles')
+    .select('id, title')
+    .eq('rewrite_status', 'in_progress')
+    .lt('rewritten_at', tenMinsAgo);
+
+  if (staleInProgress && staleInProgress.length > 0) {
+    for (const stale of staleInProgress) {
+      await supabase.from('articles').update({ rewrite_status: 'failed' }).eq('id', stale.id);
+      logger.warn(`[AIRewrite] Reset stale in_progress article: "${stale.title.substring(0, 50)}"`);
+    }
+  }
+
+  // ── Job-Level Guard: If any articles are currently in_progress, another worker is active ──
+  const { count: activeCount } = await supabase
+    .from('articles')
+    .select('*', { count: 'exact', head: true })
+    .eq('rewrite_status', 'in_progress');
+
+  if (activeCount > 0) {
+    logger.info('[AIRewrite] Another worker is already rewriting articles. Skipping.');
+    return { successCount: 0, failedCount: 0 };
+  }
+
   // Alert system for old stuck articles
   const { count: stuckCount, error: stuckErr } = await supabase
     .from('articles')
@@ -114,7 +140,6 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
     .lt('published_at', cutoff);
 
   if (!stuckErr && stuckCount > 0) {
-    // Check if we already alerted about this recently to avoid spamming the dashboard every 15 minutes
     const { data: existingAlerts } = await supabase
       .from('system_alerts')
       .select('id')
@@ -154,7 +179,15 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
   let successCount = 0;
   for (let i = 0; i < pendingArticles.length; i++) {
     const article = pendingArticles[i];
+    const originalStatus = article.rewrite_status; // Remember for 2-strike logic
     logger.info(`[AIRewrite] ${i + 1}/${pendingArticles.length}: "${article.title.substring(0, 60)}..."`);
+
+    // Mark as in_progress BEFORE processing (DB-level lock against other workers)
+    await supabase.from('articles').update({ 
+      rewrite_status: 'in_progress',
+      rewritten_at: new Date().toISOString() // Timestamp for stale detection
+    }).eq('id', article.id);
+
 
     let finalContent = article.original_content;
     let finalImageUrl = article.image_url;
@@ -172,14 +205,14 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
         }
       } else {
         // Scraper returned no usable content
-        const nextFailStatus = article.rewrite_status === 'pending' ? 'failed' : 'permanently_failed';
+        const nextFailStatus = originalStatus === 'pending' ? 'failed' : 'permanently_failed';
         logger.warn(`[AIRewrite] Scraper returned no content for "${article.title.substring(0, 50)}". Marking ${nextFailStatus}.`);
         await supabase.from('articles').update({ rewrite_status: nextFailStatus }).eq('id', article.id);
         continue;
       }
     } catch (err) {
       // Scraper threw (404, timeout, parse error)
-      const nextFailStatus = article.rewrite_status === 'pending' ? 'failed' : 'permanently_failed';
+      const nextFailStatus = originalStatus === 'pending' ? 'failed' : 'permanently_failed';
       logger.warn(`[AIRewrite] Scraper failed for "${article.title.substring(0, 50)}": ${err.message}. Marking ${nextFailStatus}.`);
       await supabase.from('articles').update({ rewrite_status: nextFailStatus }).eq('id', article.id);
       continue;
@@ -199,7 +232,7 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
       });
       
       // Mark as failed so we can retry later (or drop after 2 tries)
-      const nextFailStatus = article.rewrite_status === 'pending' ? 'failed' : 'permanently_failed';
+      const nextFailStatus = originalStatus === 'pending' ? 'failed' : 'permanently_failed';
       await supabase
         .from('articles')
         .update({ rewrite_status: nextFailStatus })
