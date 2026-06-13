@@ -159,6 +159,50 @@ export default function ReaderDrawer() {
   };
 
   const dragOffset = isDragging ? Math.max(0, currentY - startY) : 0;
+  
+  const contentScrollRef = useRef<HTMLDivElement>(null);
+  const wheelLockRef = useRef(false);
+
+  // Desktop smooth article transition on scroll
+  useEffect(() => {
+    const container = contentScrollRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Only apply on desktop
+      if (window.innerWidth < 1024) return;
+
+      if (wheelLockRef.current) {
+        e.preventDefault();
+        return;
+      }
+
+      const isAtTop = container.scrollTop <= 0;
+      // Use a tiny buffer (1px) for floating point pixel values
+      const isAtBottom = Math.abs(container.scrollHeight - container.clientHeight - container.scrollTop) <= 1;
+
+      if (e.deltaY < 0 && isAtTop) {
+        e.preventDefault();
+        const feed = document.getElementById('main-feed-container');
+        if (feed && feed.scrollTop > 0) {
+          wheelLockRef.current = true;
+          feed.scrollBy({ top: -feed.clientHeight, behavior: 'smooth' });
+          setTimeout(() => { wheelLockRef.current = false; }, 500);
+        }
+      } else if (e.deltaY > 0 && isAtBottom) {
+        e.preventDefault();
+        const feed = document.getElementById('main-feed-container');
+        if (feed && feed.scrollTop < feed.scrollHeight - feed.clientHeight - 1) {
+          wheelLockRef.current = true;
+          feed.scrollBy({ top: feed.clientHeight, behavior: 'smooth' });
+          setTimeout(() => { wheelLockRef.current = false; }, 500);
+        }
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
 
   // Close on escape key
   useEffect(() => {
@@ -292,7 +336,7 @@ export default function ReaderDrawer() {
             </div>
 
             {/* Scrollable content */}
-            <div className={styles.drawerContent}>
+            <div className={styles.drawerContent} ref={contentScrollRef}>
               <div
                 className={styles.markdown}
                 dangerouslySetInnerHTML={{ __html: deepDiveHtml }}

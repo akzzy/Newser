@@ -385,6 +385,7 @@ export default function Feed() {
 
       {/* Snap-scroll feed */}
       <div
+        id="main-feed-container"
         ref={feedRef}
         className={`${styles.feedContainer} hide-scrollbar`}
         style={{
