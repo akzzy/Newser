@@ -27,6 +27,7 @@ export default function AdminDashboard() {
   
   // Reference for auto-scrolling terminal
   const terminalContainerRef = React.useRef<HTMLDivElement>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,10 +139,19 @@ export default function AdminDashboard() {
 
   // Auto-scroll terminal to bottom
   useEffect(() => {
-    if (terminalContainerRef.current) {
+    if (autoScroll && terminalContainerRef.current) {
       terminalContainerRef.current.scrollTop = terminalContainerRef.current.scrollHeight;
     }
-  }, [logs]);
+  }, [logs, autoScroll]);
+
+  const handleTerminalScroll = () => {
+    if (terminalContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = terminalContainerRef.current;
+      // If user is within 50px of the bottom, enable auto-scroll, else disable it
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 50;
+      setAutoScroll(isNearBottom);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this article?')) return;
@@ -568,7 +578,7 @@ export default function AdminDashboard() {
             <div style={{ width: 8, height: 8, background: '#3fb950', borderRadius: '50%', boxShadow: '0 0 8px #3fb950' }} />
             Live Backend Terminal
           </h3>
-          <div ref={terminalContainerRef} style={{ 
+          <div ref={terminalContainerRef} onScroll={handleTerminalScroll} style={{ 
             background: '#010409', 
             borderRadius: '6px', 
             padding: '1rem', 
