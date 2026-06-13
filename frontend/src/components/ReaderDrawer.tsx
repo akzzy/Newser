@@ -178,8 +178,8 @@ export default function ReaderDrawer() {
       }
 
       const isAtTop = container.scrollTop <= 0;
-      // Use a tiny buffer (1px) for floating point pixel values
-      const isAtBottom = Math.abs(container.scrollHeight - container.clientHeight - container.scrollTop) <= 1;
+      // If clientHeight is larger than scrollHeight, it's a short article and isAtBottom is true
+      const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 1;
 
       if (e.deltaY < 0 && isAtTop) {
         e.preventDefault();
