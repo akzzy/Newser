@@ -143,14 +143,14 @@ export default function DiscoverClient({ categories, sources }: { categories: st
             <span>For You</span>
           </div>
         )}
-        <div className={styles.actionCard} onClick={() => handleQuickAction('trending')}>
+        {/* <div className={styles.actionCard} onClick={() => handleQuickAction('trending')}>
           <Flame size={18} className={styles.actionIcon} />
           <span>Trending</span>
         </div>
         <div className={styles.actionCard} onClick={() => handleQuickAction('top')}>
           <Star size={18} className={styles.actionIcon} />
           <span>Top Today</span>
-        </div>
+        </div> */}
         <div className={styles.actionCard} onClick={() => handleQuickAction('latest')}>
           <Clock size={18} className={styles.actionIcon} />
           <span>Latest News</span>
