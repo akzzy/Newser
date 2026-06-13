@@ -12,6 +12,60 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// ── Shared NVIDIA Rate-Limit Lock ──
+// Both the Deduplicator (fetch job) and the Rewriter (rewrite job) call NVIDIA.
+// This cooperative lock ensures they never overlap and exceed the 40 RPM limit.
+let nvidiaLockHolder = null;  // 'fetch' | 'rewrite' | null
+let fetchWaiting = false;     // Signal for rewriter to yield
+
+function acquireNvidiaLock(holder) {
+  if (nvidiaLockHolder) return false;
+  nvidiaLockHolder = holder;
+  return true;
+}
+
+function releaseNvidiaLock(holder) {
+  if (nvidiaLockHolder === holder) nvidiaLockHolder = null;
+}
+
+/**
+ * Fetch job uses this to request priority access to NVIDIA.
+ * Sets fetchWaiting=true so the rewriter knows to pause,
+ * then waits until the rewriter releases the lock.
+ */
+async function acquireNvidiaLockForFetch(logger) {
+  if (acquireNvidiaLock('fetch')) return; // Got it immediately
+  
+  fetchWaiting = true;
+  logger.info('[NvidiaLock] Fetch job waiting for rewriter to yield...');
+  while (nvidiaLockHolder === 'rewrite') {
+    await sleep(1000); // Poll every 1s
+  }
+  nvidiaLockHolder = 'fetch';
+  fetchWaiting = false;
+  logger.info('[NvidiaLock] Fetch job acquired NVIDIA lock.');
+}
+
+/**
+ * Rewriter checks this before each article.
+ * If the fetch job is waiting, it yields the lock and pauses.
+ */
+async function yieldIfFetchWaiting(logger) {
+  if (!fetchWaiting) return;
+  
+  logger.info('[NvidiaLock] Rewriter yielding to fetch job...');
+  releaseNvidiaLock('rewrite');
+  
+  // Wait until fetch job finishes its dedup phase
+  while (fetchWaiting || nvidiaLockHolder === 'fetch') {
+    await sleep(1000);
+  }
+  
+  // Re-acquire lock and resume
+  nvidiaLockHolder = 'rewrite';
+  logger.info('[NvidiaLock] Rewriter resumed after fetch job completed.');
+}
+
 /**
  * Fetch articles from a single source and attach source metadata.
  * Returns raw articles without storing anything.
@@ -87,12 +141,12 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
 
   if (error) {
     logger.error(`[AIRewrite] Error fetching pending articles: ${error.message}`);
-    return 0;
+    return { successCount: 0, failedCount: 0 };
   }
 
   if (!pendingArticles || pendingArticles.length === 0) {
     logger.info('[AIRewrite] No pending articles to rewrite');
-    return 0;
+    return { successCount: 0, failedCount: 0 };
   }
 
   logger.info(`[AIRewrite] Processing ${pendingArticles.length} pending articles...`);
@@ -180,9 +234,11 @@ async function rewritePendingArticles(supabase, logger, limit = 10) {
       }
     }
 
-    // 12.5-second delay between requests (~4.8 RPM) to safely stay under Cerebras's 5 RPM limit
+    // Brief delay between articles
     if (i < pendingArticles.length - 1) {
-      await sleep(12500);
+      await sleep(2000);
+      // Cooperative yielding: pause if fetch job needs NVIDIA for dedup
+      await yieldIfFetchWaiting(logger);
     }
   }
 
@@ -327,14 +383,17 @@ export async function refreshAllFeeds(fastify) {
 
   if (newArticles.length === 0) {
     logger.info('[RefreshFeeds] No new articles (all URLs already in DB).');
-    // Still run AI rewriter for any pending articles
-    await rewritePendingArticles(supabase, logger, 50);
+    // Release lock and return — the independent rewrite job handles pending articles
+    await supabase.from('cron_runs').update({ completed_at: new Date().toISOString() }).eq('id', lockRecord.id);
     return;
   }
 
   logger.info(`[RefreshFeeds] ${newArticles.length} new articles after URL dedup`);
 
   // ── Phase 3: Semantic title deduplication (cross-source + against DB) ──
+  // Acquire NVIDIA lock (with priority — rewriter will yield if running)
+  await acquireNvidiaLockForFetch(logger);
+  try {
   // Fetch recent articles from DB to compare against
   const cutoffTime = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
   const { data: recentDbArticles } = await supabase
@@ -417,6 +476,10 @@ export async function refreshAllFeeds(fastify) {
   }
 
   logger.info(`[RefreshFeeds] Phase 3 done: ${uniqueArticles.length} unique articles, ${skippedCount} semantic duplicates dropped`);
+  } finally {
+    // Always release NVIDIA lock — dedup is done (or crashed), rewriter can resume
+    releaseNvidiaLock('fetch');
+  }
 
   // Cleanup old duplicate logs (> 7 days)
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -424,7 +487,7 @@ export async function refreshAllFeeds(fastify) {
 
   if (uniqueArticles.length === 0) {
     logger.info('[RefreshFeeds] No unique articles to store.');
-    await rewritePendingArticles(supabase, logger, 50);
+    await supabase.from('cron_runs').update({ completed_at: new Date().toISOString() }).eq('id', lockRecord.id);
     return;
   }
 
@@ -499,30 +562,72 @@ export async function refreshAllFeeds(fastify) {
 
   logger.info(`[RefreshFeeds] Phase 5 done: ${insertedCount} new articles stored`);
 
-  // ── Phase 6: Rewrite pending articles with AI ──
-  const rewriteStats = await rewritePendingArticles(supabase, logger, 50);
-  cycleStats.ai_rewritten = rewriteStats.successCount;
-  cycleStats.ai_failed = rewriteStats.failedCount;
-
+  // Fetch job is done — update lock record (no more Phase 6 here)
   cycleStats.completed_at = new Date().toISOString();
   
-  // Update the lock record with final stats
   await supabase
     .from('cron_runs')
     .update(cycleStats)
     .eq('id', lockRecord.id);
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-  logger.info(`[RefreshFeeds] Cycle complete. ${insertedCount} stored, ${rewriteStats.successCount} rewritten, ${skippedCount} duplicates dropped in ${elapsed}s`);
+  logger.info(`[RefreshFeeds] Fetch cycle complete. ${insertedCount} stored, ${skippedCount} duplicates dropped in ${elapsed}s`);
+}
+
+// ── Independent Rewrite Job ──
+
+let rewriteJobRunning = false;
+
+/**
+ * Independent rewrite job that runs on its own schedule.
+ * Picks up pending/failed articles and rewrites them with AI.
+ * Cooperatively yields to the fetch job when it needs NVIDIA for dedup.
+ */
+async function rewriteJob(fastify) {
+  const logger = fastify.log;
+  const supabase = fastify.supabase;
+
+  // Simple in-memory lock to prevent overlapping rewrite cycles
+  if (rewriteJobRunning) {
+    return;
+  }
+
+  // Check if fetch job needs NVIDIA — if so, skip this cycle entirely
+  if (fetchWaiting || nvidiaLockHolder === 'fetch') {
+    logger.info('[RewriteJob] Fetch job is using NVIDIA, skipping this cycle.');
+    return;
+  }
+
+  rewriteJobRunning = true;
+
+  try {
+    // Acquire NVIDIA lock for rewriting
+    if (!acquireNvidiaLock('rewrite')) {
+      logger.info('[RewriteJob] NVIDIA lock held, skipping.');
+      return;
+    }
+
+    const rewriteStats = await rewritePendingArticles(supabase, logger, 50);
+    
+    if (rewriteStats.successCount > 0 || rewriteStats.failedCount > 0) {
+      logger.info(`[RewriteJob] Cycle done: ${rewriteStats.successCount} rewritten, ${rewriteStats.failedCount} failed`);
+    }
+  } catch (err) {
+    logger.error(`[RewriteJob] Error: ${err.message}`);
+  } finally {
+    releaseNvidiaLock('rewrite');
+    rewriteJobRunning = false;
+  }
 }
 
 /**
- * Start the cron job for periodic feed refreshing.
+ * Start both cron jobs: Fetch (every 15 min) + Rewrite (every 5 min).
  */
 export function startCronJobs(fastify) {
-  const interval = parseInt(process.env.REFRESH_INTERVAL || '15', 10);
+  const fetchInterval = parseInt(process.env.REFRESH_INTERVAL || '15', 10);
+  const rewriteInterval = 5; // minutes
 
-  // Run initial refresh after a short delay to let the server stabilize
+  // ── Fetch Job: Initial run after short delay ──
   setTimeout(() => {
     fastify.log.info('[RefreshFeeds] Running initial feed refresh...');
     refreshAllFeeds(fastify).catch(err => {
@@ -530,14 +635,29 @@ export function startCronJobs(fastify) {
     });
   }, 3000);
 
-  // Schedule periodic refresh
-  cron.schedule(`*/${interval} * * * *`, () => {
+  // ── Fetch Job: Periodic schedule ──
+  cron.schedule(`*/${fetchInterval} * * * *`, () => {
     refreshAllFeeds(fastify).catch(err => {
       fastify.log.error(`[RefreshFeeds] Scheduled refresh failed: ${err.message}`);
     });
   });
 
-  fastify.log.info(`[RefreshFeeds] Cron scheduled: every ${interval} minutes`);
+  // ── Rewrite Job: Initial run after 30s (let fetch job go first) ──
+  setTimeout(() => {
+    fastify.log.info('[RewriteJob] Running initial rewrite cycle...');
+    rewriteJob(fastify).catch(err => {
+      fastify.log.error(`[RewriteJob] Initial rewrite failed: ${err.message}`);
+    });
+  }, 30000);
+
+  // ── Rewrite Job: Periodic schedule ──
+  cron.schedule(`*/${rewriteInterval} * * * *`, () => {
+    rewriteJob(fastify).catch(err => {
+      fastify.log.error(`[RewriteJob] Scheduled rewrite failed: ${err.message}`);
+    });
+  });
+
+  fastify.log.info(`[CronJobs] Fetch: every ${fetchInterval} min | Rewrite: every ${rewriteInterval} min`);
 }
 
 /**

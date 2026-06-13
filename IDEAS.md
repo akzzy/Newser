@@ -40,3 +40,21 @@ This document tracks upcoming feature ideas and architectural upgrades for the N
 - **Why it's better than simple truncation:** It understands the *meaning* of sentences rather than just their position. A critical detail buried in paragraph 8 won't be lost — the algorithm will surface it if it represents a unique topic cluster.
 - **Hosting:** Deploy the embedding model (e.g., `sentence-transformers/all-MiniLM-L6-v2`) as a free microservice on **Hugging Face Spaces**. The backend sends the raw article text to the HF Space, receives back the compressed summary, and then forwards that to Cerebras for the creative rewrite.
 - **Trade-offs:** More complex to set up, adds a network hop to HF Spaces, and is overkill for short news articles. Best suited if we scale to long-form investigative pieces or research papers.
+
+## 8. Near-Real-Time Feed Fetching (5-Minute Polling)
+**Location:** Backend — Cron Job Configuration
+**Concept:** Now that the fetch job is split from the rewrite job and completes in ~2-3 minutes, we can safely reduce the RSS polling interval from 15 minutes down to **5 minutes** for near-real-time freshness. Most major news sites update their RSS feeds every 5-10 minutes, so polling faster than 5 minutes wouldn't gain much.
+- **How to enable:** Change `REFRESH_INTERVAL` in `.env` from `15` to `5`.
+- **Trade-offs:** Slightly more Supabase reads per hour, but the fetch job is lightweight and fast.
+
+## 9. WebSub (PubSubHubbub) for True Real-Time Push
+**Location:** Backend — New Webhook Endpoint
+**Concept:** WebSub is the only protocol that allows RSS publishers to **push** updates to subscribers in real-time instead of polling. When a publisher updates their feed, a hub notifies all subscribers instantly — zero latency.
+- **Challenges:**
+  - Very few major news publishers currently support WebSub
+  - Requires a publicly accessible webhook endpoint (tricky on cPanel shared hosting)
+  - Would need a hybrid approach: WebSub for publishers that support it, polling for the rest
+- **Resources:**
+  - [WebSub W3C Spec](https://www.w3.org/TR/websub/)
+  - [Google PubSubHubbub Hub](https://pubsubhubbub.appspot.com/)
+
