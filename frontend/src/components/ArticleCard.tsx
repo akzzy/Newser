@@ -56,9 +56,10 @@ function ShareIcon() {
 interface ArticleCardProps {
   article: Article;
   isFocused?: boolean;
+  priority?: boolean;
 }
 
-export default function ArticleCard({ article, isFocused = false }: ArticleCardProps) {
+export default function ArticleCard({ article, isFocused = false, priority = false }: ArticleCardProps) {
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -138,7 +139,8 @@ export default function ArticleCard({ article, isFocused = false }: ArticleCardP
           className={styles.heroImage}
           src={article.image_url}
           alt=""
-          loading="lazy"
+          loading={priority ? undefined : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
           onError={() => setImgError(true)}
         />
       ) : (

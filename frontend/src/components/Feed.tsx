@@ -294,13 +294,37 @@ export default function Feed() {
                 const items = [
                   <button
                     key="all"
-                    className={`${styles.categoryTab} ${category === 'all' && source === 'all' ? styles.categoryTabActive : ''}`}
-                    onClick={() => handleCategoryChange('all')}
+                    className={`${styles.categoryTab} ${category === 'all' && source === 'all' && sort === 'foryou' ? styles.categoryTabActive : ''}`}
+                    onClick={() => {
+                      setSort('foryou');
+                      setSource('all');
+                      handleCategoryChange('all');
+                    }}
                     id="category-all"
                   >
                     For You
                   </button>
                 ];
+                
+                if (sort !== 'foryou') {
+                  let label = 'Latest News';
+                  if (sort === 'trending') label = 'Trending';
+                  else if (sort === 'top_today') label = 'Top Today';
+                  
+                  items.push(
+                    <button
+                      key={`sort-${sort}`}
+                      className={`${styles.categoryTab} ${category === 'all' && source === 'all' ? styles.categoryTabActive : ''}`}
+                      onClick={() => {
+                        setSource('all');
+                        handleCategoryChange('all');
+                      }}
+                      id={`sort-${sort}`}
+                    >
+                      {label}
+                    </button>
+                  );
+                }
                 
                 if (source !== 'all') {
                   items.push(
@@ -395,6 +419,7 @@ export default function Feed() {
               key={article.id} 
               article={article} 
               isFocused={index === currentIndex} 
+              priority={index === 0}
             />
           ))
         )}
