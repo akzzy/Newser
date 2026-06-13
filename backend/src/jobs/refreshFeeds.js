@@ -325,6 +325,7 @@ export async function refreshAllFeeds(fastify) {
 
   if (allFetched.length === 0) {
     logger.info('[RefreshFeeds] No articles fetched from any source.');
+    await supabase.from('cron_runs').update({ completed_at: new Date().toISOString() }).eq('id', lockRecord.id);
     return;
   }
 
@@ -393,6 +394,10 @@ export async function refreshAllFeeds(fastify) {
   // ── Phase 3: Semantic title deduplication (cross-source + against DB) ──
   // Acquire NVIDIA lock (with priority — rewriter will yield if running)
   await acquireNvidiaLockForFetch(logger);
+
+  const uniqueArticles = [];
+  let skippedCount = 0;
+
   try {
   // Fetch recent articles from DB to compare against
   const cutoffTime = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
@@ -405,8 +410,6 @@ export async function refreshAllFeeds(fastify) {
   const knownTitles = (recentDbArticles || []).map(a => a.title);
   const dbTitleToId = new Map((recentDbArticles || []).map(a => [a.title, a.id]));
   const dbTitleToSourceId = new Map((recentDbArticles || []).map(a => [a.title, a.source_id]));
-  const uniqueArticles = [];
-  let skippedCount = 0;
 
   // Fetch recent duplicate logs (up to 7 days, managed by cleanup) to avoid re-evaluating or re-ingesting manually deleted articles
   const { data: recentLogs } = await supabase
