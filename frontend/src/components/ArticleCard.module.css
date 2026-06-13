@@ -21,7 +21,7 @@
   top: calc(115px + env(safe-area-inset-top, 0px)); /* Generous and balanced padding below the category scroll tabs */
   left: 0;
   width: 100%;
-  aspect-ratio: 1 / 1; /* Forces the image to be a perfect 1x1 square on all devices */
+  height: calc(60% - 115px - env(safe-area-inset-top, 0px)); /* Adaptive to phone height */
   object-fit: cover;
   object-position: center;
   z-index: 1;
@@ -32,7 +32,7 @@
   top: calc(115px + env(safe-area-inset-top, 0px));
   left: 0;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: calc(60% - 115px - env(safe-area-inset-top, 0px));
   background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
   z-index: 1;
   display: flex;
@@ -65,10 +65,10 @@
 /* ---- Content area (flows immediately below the image) ---- */
 .contentArea {
   position: absolute;
-  top: calc(115px + env(safe-area-inset-top, 0px) + 100cqw); /* Starts EXACTLY where the 1x1 square image ends */
+  top: 60%; /* Starts EXACTLY where the image ends */
   left: 0;
   width: 100%;
-  height: calc(100% - 115px - env(safe-area-inset-top, 0px) - 100cqw); /* Stretches dynamic content card to the bottom */
+  height: 40%; /* Stretches dynamic content card to the bottom */
   z-index: 3;
   display: flex;
   flex-direction: column;
