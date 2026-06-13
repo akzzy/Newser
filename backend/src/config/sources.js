@@ -138,8 +138,8 @@ export const sources = [
   {
     name: 'Vox World',
     slug: 'vox-world',
-    feed_url: 'https://www.vox.com/rss/world/index.xml',
-    website_url: 'https://www.vox.com/world',
+    feed_url: 'https://www.vox.com/rss/index.xml',
+    website_url: 'https://www.vox.com',
     logo_url: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://vox.com&size=128',
     color: '#FFF200',
     category: 'world',
