@@ -187,6 +187,31 @@ export default function ReaderDrawer() {
     };
   }, [isDrawerOpen]);
 
+  // Hardware back button support for mobile
+  useEffect(() => {
+    // Only apply on mobile where the drawer actually covers the screen
+    if (isDrawerOpen && typeof window !== 'undefined' && window.innerWidth < 1024) {
+      // Push a dummy state to the history stack
+      window.history.pushState({ drawerOpen: true }, '');
+
+      const handlePopState = () => {
+        // User pressed the system back button / swiped back
+        closeDrawer();
+      };
+
+      window.addEventListener('popstate', handlePopState);
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        // If the drawer was closed programmatically (swipe down, close button)
+        // rather than via the back button, we need to clean up the history stack
+        if (window.history.state?.drawerOpen) {
+          window.history.back();
+        }
+      };
+    }
+  }, [isDrawerOpen, closeDrawer]);
+
   const handleOverlayClick = useCallback(() => {
     triggerHaptic('light');
     closeDrawer();
