@@ -151,7 +151,10 @@ export default function DiscoverClient({ categories, sources }: { categories: st
           <Star size={18} className={styles.actionIcon} />
           <span>Top Today</span>
         </div> */}
-        <div className={styles.actionCard} onClick={() => handleQuickAction('latest')}>
+        <div 
+          className={`${styles.actionCard} ${!hasCompletedOnboarding ? styles.fullWidth : ''}`} 
+          onClick={() => handleQuickAction('latest')}
+        >
           <Clock size={18} className={styles.actionIcon} />
           <span>Latest News</span>
         </div>

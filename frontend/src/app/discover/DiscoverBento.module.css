@@ -73,6 +73,10 @@
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
 .actionCard:hover {
   background: #121212;
   border-color: rgba(255, 255, 255, 0.15);
