@@ -77,102 +77,106 @@ export default function ReaderDrawer() {
   
   // Use the explicitly opened article (mobile) or default to the current feed article (desktop auto-sync)
   const activeArticle = drawerArticle || articles[currentIndex];
-  const [startY, setStartY] = useState(0);
-  const [currentY, setCurrentY] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragLocked, setDragLocked] = useState(false);
-  const isDraggingRef = useRef(false);
-  const scrollContainerRef = useRef<HTMLElement | null>(null);
 
-  // Sync dragging state to ref for native event listener
-  useEffect(() => {
-    isDraggingRef.current = isDragging;
-  }, [isDragging]);
+  // ── Swipe-to-dismiss gesture (mobile only) ──
+  // All gesture tracking lives in a single ref to avoid stale closures in native listeners.
+  // React state is only used for visual output (triggers re-render for transform/opacity).
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const gestureRef = useRef({
+    startY: 0,
+    isDragging: false,
+    dragLocked: false,
+    currentOffset: 0,
+    scrollContainer: null as HTMLElement | null,
+  });
+  const [dragVisual, setDragVisual] = useState({ active: false, offset: 0 });
+  const closeDrawerRef = useRef(closeDrawer);
+  closeDrawerRef.current = closeDrawer;
 
-  // Non-passive native event listener to completely block browser rubber-banding
+  // Attach native touch listeners directly to the drawer element.
+  // { passive: false } is CRITICAL — it lets us call preventDefault() BEFORE the
+  // browser's scroll engine claims the touch on .drawerContent.
   useEffect(() => {
-    const preventNativeScroll = (e: TouchEvent) => {
-      if (isDraggingRef.current) {
+    const drawer = drawerRef.current;
+    if (!drawer) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      const g = gestureRef.current;
+      g.startY = e.touches[0].clientY;
+      g.isDragging = false;
+      g.dragLocked = false;
+      g.currentOffset = 0;
+
+      const target = e.target as HTMLElement;
+      g.scrollContainer = target.closest(`.${styles.drawerContent}`) as HTMLElement | null;
+
+      setDragVisual({ active: false, offset: 0 });
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!e.touches.length) return;
+      const y = e.touches[0].clientY;
+      const g = gestureRef.current;
+
+      // Already dragging — track the finger and block native scroll
+      if (g.isDragging) {
         e.preventDefault();
+        g.currentOffset = Math.max(0, y - g.startY);
+        setDragVisual({ active: true, offset: g.currentOffset });
+        return;
+      }
+
+      // Locked to upward content scrolling for this gesture
+      if (g.dragLocked) return;
+
+      const dy = y - g.startY;
+
+      // Pulling UP — lock to content scroll, don't interfere
+      if (dy < -10) {
+        g.dragLocked = true;
+        return;
+      }
+
+      // Pulling DOWN — check if content is at the top
+      if (dy > 5) {
+        const sc = g.scrollContainer;
+        const isAtTop = !sc || sc.scrollTop <= 1;
+
+        if (isAtTop) {
+          // Content has nowhere to scroll — hijack the touch for drag-to-dismiss
+          e.preventDefault(); // BLOCK native scroll BEFORE browser claims it
+          g.isDragging = true;
+          g.startY = y; // Anchor from here so offset starts at 0
+          g.currentOffset = 0;
+          setDragVisual({ active: true, offset: 0 });
+        }
+        // If content is NOT at top: do nothing. Let native scroll continue.
+        // On the next touchmove, if the user has scrolled to the top, we'll catch it.
       }
     };
-    
-    // Attach to document to catch all rogue overscrolls
-    document.addEventListener('touchmove', preventNativeScroll, { passive: false });
-    return () => document.removeEventListener('touchmove', preventNativeScroll);
-  }, []);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const y = e.touches[0].clientY;
-    setStartY(y);
-    setCurrentY(y);
-    setIsDragging(false);
-    setDragLocked(false);
-
-    // Cache the scroll container reference for the entire gesture
-    const target = e.target as HTMLElement;
-    scrollContainerRef.current = target.closest(`.${styles.drawerContent}`) as HTMLElement | null;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const y = e.touches[0].clientY;
-
-    // If already in drag mode, just track the finger
-    if (isDragging) {
-      if (y > startY) {
-        setCurrentY(y);
-      } else {
-        setCurrentY(startY);
-      }
-      return;
-    }
-
-    // If locked to upward scrolling, let native scroll handle it
-    if (dragLocked) return;
-
-    const dy = y - startY;
-
-    // User is pulling UP — lock to content scroll for this gesture
-    if (dy < -10) {
-      setDragLocked(true);
-      return;
-    }
-
-    // User is pulling DOWN — check if content is at the top
-    if (dy > 5) {
-      const sc = scrollContainerRef.current;
-      const isContentAtTop = !sc || sc.scrollTop <= 1;
-
-      if (isContentAtTop) {
-        // Content has nowhere to scroll — enter drag mode
-        // Anchor from current position so dragOffset starts at 0
-        setIsDragging(true);
-        isDraggingRef.current = true; // Immediately block native scroll (no waiting for useEffect)
-        setStartY(y);
-        setCurrentY(y);
-      }
-      // If content is NOT at top: do nothing this frame.
-      // Let native scroll continue. On the next touchmove, if scrollTop
-      // has reached 0, we'll catch it and enter drag mode mid-gesture.
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (isDragging) {
-      const diff = currentY - startY;
-      if (diff > 80) {
+    const onTouchEnd = () => {
+      const g = gestureRef.current;
+      if (g.isDragging && g.currentOffset > 80) {
         triggerHaptic('light');
-        closeDrawer();
+        closeDrawerRef.current();
       }
-    }
-    setIsDragging(false);
-    isDraggingRef.current = false;
-    setDragLocked(false);
-    setStartY(0);
-    setCurrentY(0);
-  };
+      g.isDragging = false;
+      g.dragLocked = false;
+      g.currentOffset = 0;
+      setDragVisual({ active: false, offset: 0 });
+    };
 
-  const dragOffset = isDragging ? Math.max(0, currentY - startY) : 0;
+    drawer.addEventListener('touchstart', onTouchStart, { passive: true });
+    drawer.addEventListener('touchmove', onTouchMove, { passive: false });
+    drawer.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    return () => {
+      drawer.removeEventListener('touchstart', onTouchStart);
+      drawer.removeEventListener('touchmove', onTouchMove);
+      drawer.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []);
   
   const contentScrollRef = useRef<HTMLDivElement>(null);
   const wheelLockRef = useRef(false);
@@ -289,25 +293,23 @@ export default function ReaderDrawer() {
         aria-hidden="true"
         style={{
           // Fade the backdrop slightly as they pull down
-          opacity: isDragging ? Math.max(0, 1 - (dragOffset / 400)) : undefined,
-          transition: isDragging ? 'none' : undefined
+          opacity: dragVisual.active ? Math.max(0, 1 - (dragVisual.offset / 400)) : undefined,
+          transition: dragVisual.active ? 'none' : undefined
         }}
       />
 
       {/* Drawer panel */}
       <div
+        ref={drawerRef}
         className={`${styles.drawer} ${isDrawerOpen ? styles.drawerOpen : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label="Article details"
         style={{
           // Physically move the drawer with the thumb, bypassing CSS transition
-          transform: isDragging ? `translateY(${dragOffset}px)` : undefined,
-          transition: isDragging ? 'none' : undefined
+          transform: dragVisual.active ? `translateY(${dragVisual.offset}px)` : undefined,
+          transition: dragVisual.active ? 'none' : undefined
         }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
         {/* Drag handle */}
         <div className={styles.dragHandle}>
