@@ -79,33 +79,51 @@ export default function ReaderDrawer() {
   const activeArticle = drawerArticle || articles[currentIndex];
 
   // ── Swipe-to-dismiss gesture (mobile only) ──
-  // All gesture tracking lives in a single ref to avoid stale closures in native listeners.
-  // React state is only used for visual output (triggers re-render for transform/opacity).
+  // Industry-standard approach (same as Vaul/Radix bottom sheets):
+  //   - Set touch-action: none on the drawer (via CSS) so the browser's compositor
+  //     never claims the touch gesture for native scrolling.
+  //   - Handle ALL touch input in JavaScript: scroll the content manually when reading,
+  //     switch to drag-to-dismiss when content is at the top.
+  // This is the ONLY reliable way on mobile Chrome/Safari. The compositor's "fast path"
+  // scrolling ignores e.preventDefault() once it starts — no JS workaround exists.
   const drawerRef = useRef<HTMLDivElement>(null);
   const gestureRef = useRef({
     startY: 0,
+    lastY: 0,
     isDragging: false,
-    dragLocked: false,
+    isScrolling: false,
     currentOffset: 0,
     scrollContainer: null as HTMLElement | null,
+    velocity: 0,
+    lastMoveTime: 0,
   });
   const [dragVisual, setDragVisual] = useState({ active: false, offset: 0 });
   const closeDrawerRef = useRef(closeDrawer);
   closeDrawerRef.current = closeDrawer;
+  const momentumRef = useRef<number>(0);
 
-  // Attach native touch listeners directly to the drawer element.
-  // { passive: false } is CRITICAL — it lets us call preventDefault() BEFORE the
-  // browser's scroll engine claims the touch on .drawerContent.
   useEffect(() => {
     const drawer = drawerRef.current;
     if (!drawer) return;
+    // Only apply on mobile
+    if (window.innerWidth >= 1024) return;
 
     const onTouchStart = (e: TouchEvent) => {
+      // Cancel any ongoing momentum scroll
+      if (momentumRef.current) {
+        cancelAnimationFrame(momentumRef.current);
+        momentumRef.current = 0;
+      }
+
       const g = gestureRef.current;
-      g.startY = e.touches[0].clientY;
+      const y = e.touches[0].clientY;
+      g.startY = y;
+      g.lastY = y;
       g.isDragging = false;
-      g.dragLocked = false;
+      g.isScrolling = false;
       g.currentOffset = 0;
+      g.velocity = 0;
+      g.lastMoveTime = Date.now();
 
       const target = e.target as HTMLElement;
       g.scrollContainer = target.closest(`.${styles.drawerContent}`) as HTMLElement | null;
@@ -115,59 +133,102 @@ export default function ReaderDrawer() {
 
     const onTouchMove = (e: TouchEvent) => {
       if (!e.touches.length) return;
+      e.preventDefault(); // ALWAYS prevent — we handle everything manually
+
       const y = e.touches[0].clientY;
       const g = gestureRef.current;
+      const delta = y - g.lastY; // positive = finger moving down
+      const now = Date.now();
+      const timeDelta = now - g.lastMoveTime;
 
-      // Already dragging — track the finger and block native scroll
+      // Track velocity for momentum
+      if (timeDelta > 0) {
+        g.velocity = delta / timeDelta;
+      }
+      g.lastMoveTime = now;
+      g.lastY = y;
+
+      const sc = g.scrollContainer;
+      const isAtTop = !sc || sc.scrollTop <= 0;
+      const isAtBottom = !sc || sc.scrollTop >= sc.scrollHeight - sc.clientHeight - 1;
+
       if (g.isDragging) {
-        e.preventDefault();
-        g.currentOffset = Math.max(0, y - g.startY);
+        // ── DRAG MODE: move the drawer down ──
+        if (delta < 0) {
+          // Finger moving UP while dragging — reduce offset or switch back to scrolling
+          g.currentOffset = Math.max(0, g.currentOffset + delta);
+          if (g.currentOffset <= 0) {
+            // Snapped back to origin — switch to scroll mode
+            g.isDragging = false;
+            g.isScrolling = true;
+            g.currentOffset = 0;
+            setDragVisual({ active: false, offset: 0 });
+            return;
+          }
+        } else {
+          g.currentOffset += delta;
+        }
         setDragVisual({ active: true, offset: g.currentOffset });
         return;
       }
 
-      // Locked to upward content scrolling for this gesture
-      if (g.dragLocked) return;
-
-      const dy = y - g.startY;
-
-      // Pulling UP — lock to content scroll, don't interfere
-      if (dy < -10) {
-        g.dragLocked = true;
+      // ── Not dragging yet — handle scroll or start drag ──
+      if (delta > 0 && isAtTop) {
+        // Finger moving DOWN and content is at the top → enter drag mode
+        g.isDragging = true;
+        g.isScrolling = false;
+        g.startY = y;
+        g.currentOffset = 0;
+        setDragVisual({ active: true, offset: 0 });
         return;
       }
 
-      // Pulling DOWN — check if content is at the top
-      if (dy > 5) {
-        const sc = g.scrollContainer;
-        const isAtTop = !sc || sc.scrollTop <= 1;
-
-        if (isAtTop) {
-          // Content has nowhere to scroll — hijack the touch for drag-to-dismiss
-          e.preventDefault(); // BLOCK native scroll BEFORE browser claims it
-          g.isDragging = true;
-          g.startY = y; // Anchor from here so offset starts at 0
-          g.currentOffset = 0;
-          setDragVisual({ active: true, offset: 0 });
+      // Normal scrolling — manually apply delta to scrollTop
+      if (sc) {
+        if (delta < 0) {
+          // Finger moving UP → scroll content down (read more)
+          sc.scrollTop -= delta; // delta is negative, so this adds
+        } else if (delta > 0) {
+          // Finger moving DOWN → scroll content up (go back)
+          sc.scrollTop -= delta; // delta is positive, so this subtracts
         }
-        // If content is NOT at top: do nothing. Let native scroll continue.
-        // On the next touchmove, if the user has scrolled to the top, we'll catch it.
+        g.isScrolling = true;
       }
     };
 
     const onTouchEnd = () => {
       const g = gestureRef.current;
+
       if (g.isDragging && g.currentOffset > 80) {
+        // Dismiss
         triggerHaptic('light');
         closeDrawerRef.current();
+      } else if (g.isDragging) {
+        // Snap back (CSS transition handles the animation)
       }
+
+      // Apply momentum scrolling if we were scrolling content
+      if (g.isScrolling && g.scrollContainer && Math.abs(g.velocity) > 0.1) {
+        let velocity = -g.velocity * 800; // Convert to px/frame, invert for scrollTop
+        const sc = g.scrollContainer;
+        const friction = 0.95;
+
+        const step = () => {
+          if (Math.abs(velocity) < 0.5) return;
+          sc.scrollTop += velocity * 0.016; // ~16ms per frame
+          velocity *= friction;
+          momentumRef.current = requestAnimationFrame(step);
+        };
+        momentumRef.current = requestAnimationFrame(step);
+      }
+
       g.isDragging = false;
-      g.dragLocked = false;
+      g.isScrolling = false;
       g.currentOffset = 0;
       setDragVisual({ active: false, offset: 0 });
     };
 
-    drawer.addEventListener('touchstart', onTouchStart, { passive: true });
+    drawer.addEventListener('touchstart', onTouchStart, { passive: false });
     drawer.addEventListener('touchmove', onTouchMove, { passive: false });
     drawer.addEventListener('touchend', onTouchEnd, { passive: true });
 
@@ -175,6 +236,7 @@ export default function ReaderDrawer() {
       drawer.removeEventListener('touchstart', onTouchStart);
       drawer.removeEventListener('touchmove', onTouchMove);
       drawer.removeEventListener('touchend', onTouchEnd);
+      if (momentumRef.current) cancelAnimationFrame(momentumRef.current);
     };
   }, []);
   

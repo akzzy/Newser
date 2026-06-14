@@ -32,6 +32,7 @@
   flex-direction: column;
   overflow: hidden;
   overscroll-behavior-y: none; /* Stops Android Chrome pull-to-refresh on the whole drawer */
+  touch-action: none; /* JS handles all touch — prevents compositor from hijacking scroll */
 }
 
 .drawerOpen {
@@ -318,6 +319,7 @@
     pointer-events: auto !important;
     transition: none;
     background: #0A0A0A;
+    touch-action: auto; /* Restore normal touch behavior on desktop */
   }
   
   .drawerOpen {
