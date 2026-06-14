@@ -353,6 +353,7 @@
   .drawerContent {
     padding: 0 40px var(--space-2xl);
     overflow-y: auto; /* Restore native scrolling on desktop */
+    touch-action: auto; /* Restore native touch scrolling for touch-screen laptops */
   }
 }
 
