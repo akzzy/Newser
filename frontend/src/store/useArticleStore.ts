@@ -159,7 +159,7 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
       if (categories.length > 0) {
         // Bulk insert to backend only if they selected something
         const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        await fetch(`${API_BASE}/api/interactions`, {
+        const res = await fetch(`${API_BASE}/api/interactions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -168,6 +168,10 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
             score: 10
           })
         });
+        
+        if (!res.ok) {
+          throw new Error(`Failed to save preferences: ${res.status}`);
+        }
       }
       
       // Save locally regardless of if they selected or skipped

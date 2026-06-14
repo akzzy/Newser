@@ -118,10 +118,12 @@ export default function Feed() {
   useEffect(() => {
     // Only auto-load if NOT on a shared link page (SingleArticleClient handles the initial load for shared links)
     const isSharedPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/a/');
-    if (guestId !== null && articles.length === 0 && !isSharedPage) {
+    // Skip if onboarding just completed — the onboarding useEffect handles that reload
+    const onboardingJustCompleted = !prevOnboardingRef.current && hasCompletedOnboarding;
+    if (guestId !== null && articles.length === 0 && !isSharedPage && !onboardingJustCompleted) {
       loadArticles(1, category, source, sort, true);
     }
-  }, [category, source, sort, loadArticles, guestId, articles.length]);
+  }, [category, source, sort, loadArticles, guestId, articles.length, hasCompletedOnboarding]);
 
   // Explicit reload when onboarding completes (false → true transition)
   // This guarantees a fresh personalized fetch instead of relying on the
