@@ -82,6 +82,7 @@ export default function ReaderDrawer() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragLocked, setDragLocked] = useState(false);
   const isDraggingRef = useRef(false);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
 
   // Sync dragging state to ref for native event listener
   useEffect(() => {
@@ -102,45 +103,57 @@ export default function ReaderDrawer() {
   }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    setStartY(e.touches[0].clientY);
-    setCurrentY(e.touches[0].clientY);
+    const y = e.touches[0].clientY;
+    setStartY(y);
+    setCurrentY(y);
     setIsDragging(false);
     setDragLocked(false);
+
+    // Cache the scroll container reference for the entire gesture
+    const target = e.target as HTMLElement;
+    scrollContainerRef.current = target.closest(`.${styles.drawerContent}`) as HTMLElement | null;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (dragLocked) return;
-
     const y = e.touches[0].clientY;
-    const dy = y - startY;
-    
-    if (!isDragging) {
-      if (Math.abs(dy) > 5) {
-        if (dy > 0) {
-          // Pulling DOWN
-          const target = e.target as HTMLElement;
-          const scrollContainer = target.closest(`.${styles.drawerContent}`);
-          
-          if (!scrollContainer || scrollContainer.scrollTop <= 3) {
-            setIsDragging(true);
-            setStartY(y);
-            setCurrentY(y);
-          } else {
-            setDragLocked(true);
-          }
-        } else {
-          // Pulling UP
-          setDragLocked(true);
-        }
+
+    // If already in drag mode, just track the finger
+    if (isDragging) {
+      if (y > startY) {
+        setCurrentY(y);
+      } else {
+        setCurrentY(startY);
       }
       return;
     }
-    
-    // If dragging, record position. Native listener handles preventDefault.
-    if (y > startY) {
-      setCurrentY(y);
-    } else {
-      setCurrentY(startY);
+
+    // If locked to upward scrolling, let native scroll handle it
+    if (dragLocked) return;
+
+    const dy = y - startY;
+
+    // User is pulling UP — lock to content scroll for this gesture
+    if (dy < -10) {
+      setDragLocked(true);
+      return;
+    }
+
+    // User is pulling DOWN — check if content is at the top
+    if (dy > 5) {
+      const sc = scrollContainerRef.current;
+      const isContentAtTop = !sc || sc.scrollTop <= 1;
+
+      if (isContentAtTop) {
+        // Content has nowhere to scroll — enter drag mode
+        // Anchor from current position so dragOffset starts at 0
+        setIsDragging(true);
+        isDraggingRef.current = true; // Immediately block native scroll (no waiting for useEffect)
+        setStartY(y);
+        setCurrentY(y);
+      }
+      // If content is NOT at top: do nothing this frame.
+      // Let native scroll continue. On the next touchmove, if scrollTop
+      // has reached 0, we'll catch it and enter drag mode mid-gesture.
     }
   };
 
@@ -153,6 +166,7 @@ export default function ReaderDrawer() {
       }
     }
     setIsDragging(false);
+    isDraggingRef.current = false;
     setDragLocked(false);
     setStartY(0);
     setCurrentY(0);
