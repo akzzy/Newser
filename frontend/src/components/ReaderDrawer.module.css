@@ -32,7 +32,6 @@
   flex-direction: column;
   overflow: hidden;
   overscroll-behavior-y: none; /* Stops Android Chrome pull-to-refresh on the whole drawer */
-  touch-action: pan-y; /* Locks native gestures to vertical only */
 }
 
 .drawerOpen {
@@ -127,7 +126,6 @@
   overflow-y: auto;
   scrollbar-width: none; /* Firefox: hide scrollbar */
   padding: 0 var(--space-md) var(--space-2xl);
-  -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none; /* Completely kills Android Chrome's local container stretch/glow */
 }
 
