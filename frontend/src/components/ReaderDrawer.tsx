@@ -104,11 +104,18 @@ export default function ReaderDrawer() {
 
   useEffect(() => {
     const drawer = drawerRef.current;
-    if (!drawer) return;
+    console.log('[Drawer DEBUG] useEffect fired, drawerRef:', !!drawer, 'innerWidth:', window.innerWidth);
+    if (!drawer) { console.log('[Drawer DEBUG] No drawer ref, skipping'); return; }
     // Only apply on mobile
-    if (window.innerWidth >= 1024) return;
+    if (window.innerWidth >= 1024) { console.log('[Drawer DEBUG] Desktop detected, skipping touch setup'); return; }
+    console.log('[Drawer DEBUG] ✓ Attaching POINTER listeners to drawer');
 
-    const onTouchStart = (e: TouchEvent) => {
+    const onPointerDown = (e: PointerEvent) => {
+      // Only handle primary pointer (usually touch/mouse left click)
+      if (!e.isPrimary) return;
+      
+      // Capture the pointer so we keep getting events even if the finger slides off the drawer
+      drawer.setPointerCapture(e.pointerId);
       // Cancel any ongoing momentum scroll
       if (momentumRef.current) {
         cancelAnimationFrame(momentumRef.current);
@@ -116,7 +123,7 @@ export default function ReaderDrawer() {
       }
 
       const g = gestureRef.current;
-      const y = e.touches[0].clientY;
+      const y = e.clientY;
       g.startY = y;
       g.lastY = y;
       g.isDragging = false;
@@ -129,13 +136,14 @@ export default function ReaderDrawer() {
       g.scrollContainer = target.closest(`.${styles.drawerContent}`) as HTMLElement | null;
 
       setDragVisual({ active: false, offset: 0 });
+      console.log('[Drawer DEBUG] pointerdown — scrollContainer:', !!g.scrollContainer, 'scrollTop:', g.scrollContainer?.scrollTop);
     };
 
-    const onTouchMove = (e: TouchEvent) => {
-      if (!e.touches.length) return;
+    const onPointerMove = (e: PointerEvent) => {
+      if (!e.isPrimary) return;
       e.preventDefault(); // ALWAYS prevent — we handle everything manually
 
-      const y = e.touches[0].clientY;
+      const y = e.clientY;
       const g = gestureRef.current;
       const delta = y - g.lastY; // positive = finger moving down
       const now = Date.now();
@@ -175,6 +183,7 @@ export default function ReaderDrawer() {
       // ── Not dragging yet — handle scroll or start drag ──
       if (delta > 0 && isAtTop) {
         // Finger moving DOWN and content is at the top → enter drag mode
+        console.log('[Drawer DEBUG] ✓ Entering DRAG mode — delta:', delta, 'scrollTop:', g.scrollContainer?.scrollTop);
         g.isDragging = true;
         g.isScrolling = false;
         g.startY = y;
@@ -185,6 +194,7 @@ export default function ReaderDrawer() {
 
       // Normal scrolling — manually apply delta to scrollTop
       if (sc) {
+        console.log('[Drawer DEBUG] Manual scroll — delta:', delta.toFixed(1), 'scrollTop:', sc.scrollTop.toFixed(1), 'isAtTop:', isAtTop);
         if (delta < 0) {
           // Finger moving UP → scroll content down (read more)
           sc.scrollTop -= delta; // delta is negative, so this adds
@@ -196,7 +206,14 @@ export default function ReaderDrawer() {
       }
     };
 
-    const onTouchEnd = () => {
+    const onPointerUp = (e: PointerEvent) => {
+      if (!e.isPrimary) return;
+      try {
+        drawer.releasePointerCapture(e.pointerId);
+      } catch (err) {
+        // Ignore if capture was already lost
+      }
+      
       const g = gestureRef.current;
 
       if (g.isDragging && g.currentOffset > 80) {
@@ -228,14 +245,16 @@ export default function ReaderDrawer() {
       setDragVisual({ active: false, offset: 0 });
     };
 
-    drawer.addEventListener('touchstart', onTouchStart, { passive: false });
-    drawer.addEventListener('touchmove', onTouchMove, { passive: false });
-    drawer.addEventListener('touchend', onTouchEnd, { passive: true });
+    drawer.addEventListener('pointerdown', onPointerDown, { passive: false });
+    drawer.addEventListener('pointermove', onPointerMove, { passive: false });
+    drawer.addEventListener('pointerup', onPointerUp, { passive: true });
+    drawer.addEventListener('pointercancel', onPointerUp, { passive: true });
 
     return () => {
-      drawer.removeEventListener('touchstart', onTouchStart);
-      drawer.removeEventListener('touchmove', onTouchMove);
-      drawer.removeEventListener('touchend', onTouchEnd);
+      drawer.removeEventListener('pointerdown', onPointerDown);
+      drawer.removeEventListener('pointermove', onPointerMove);
+      drawer.removeEventListener('pointerup', onPointerUp);
+      drawer.removeEventListener('pointercancel', onPointerUp);
       if (momentumRef.current) cancelAnimationFrame(momentumRef.current);
     };
   }, []);
