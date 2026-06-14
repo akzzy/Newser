@@ -233,10 +233,6 @@ export async function rewriteArticle(title, content, logger = console, maxRetrie
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const result = await rewriteWithNvidia(title, compressed);
-      if (result && Array.isArray(result.ai_tags)) {
-        if (result.ai_tags.length >= 3) result.ai_tags.pop();
-        result.ai_tags.unshift('🟢 NVIDIA');
-      }
       logger.info?.(`[AIRewriter] ✅ NVIDIA OK: "${title.substring(0, 50)}"`);
       return result;
     } catch (error) {
@@ -256,10 +252,6 @@ export async function rewriteArticle(title, content, logger = console, maxRetrie
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const result = await rewriteWithCerebras(title, compressed);
-        if (result && Array.isArray(result.ai_tags)) {
-          if (result.ai_tags.length >= 3) result.ai_tags.pop();
-          result.ai_tags.unshift('⚡ Cerebras');
-        }
         logger.info?.(`[AIRewriter] ✅ Cerebras OK: "${title.substring(0, 50)}"`);
         return result;
       } catch (error) {
