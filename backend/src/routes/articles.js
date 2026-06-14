@@ -61,8 +61,8 @@ export async function articleRoutes(fastify) {
       .not('title_hook', 'is', null);
 
     if (sort === 'foryou' && preferredCategories.length > 0 && category === 'all' && source === 'all') {
-      // ── 60/40 BLENDED CHRONOLOGICAL FEED ──
-      // User wants exactly 60% explicit interests and 40% related interests, sorted by time.
+      // ── 90/10 BLENDED CHRONOLOGICAL FEED ──
+      // 90% from the user's explicit interests, 10% related for gentle discovery.
       const normalizeCat = (c) => {
         let n = c.toLowerCase().trim();
         if (n === 'startup') return 'startups';
@@ -101,10 +101,10 @@ export async function articleRoutes(fastify) {
       // Filter out any related targets that the user already explicitly requested
       relatedTargets = [...new Set(relatedTargets)].filter(cat => !explicitTargets.includes(cat));
 
-      // Calculate pagination ratios
+      // Calculate pagination ratios (90% explicit, 10% related)
       const pageNum = Math.floor(offset / limitNum) + 1;
-      const explicitLimit = Math.ceil(limitNum * 0.6); // 12
-      const relatedLimit = limitNum - explicitLimit;   // 8
+      const explicitLimit = Math.ceil(limitNum * 0.9); // 18 of 20
+      const relatedLimit = limitNum - explicitLimit;   // 2 of 20
       
       const explicitOffset = (pageNum - 1) * explicitLimit;
       const relatedOffset = (pageNum - 1) * relatedLimit;
@@ -140,8 +140,10 @@ export async function articleRoutes(fastify) {
       let queryExplicit = getBaseQuery();
       let queryRelated = getBaseQuery();
 
-      const explicitOr = explicitTargets.map(cat => `ai_category.ilike.%${cat}%`).join(',');
-      const relatedOr = relatedTargets.map(cat => `ai_category.ilike.%${cat}%`).join(',');
+      // Use exact case-insensitive match (no % wildcards) to prevent
+      // substring collisions like "ai" matching "entertainment"
+      const explicitOr = explicitTargets.map(cat => `ai_category.ilike.${cat}`).join(',');
+      const relatedOr = relatedTargets.map(cat => `ai_category.ilike.${cat}`).join(',');
 
       // Execute both queries in parallel
       const [explicitResult, relatedResult] = await Promise.all([
