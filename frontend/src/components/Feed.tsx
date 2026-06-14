@@ -48,6 +48,7 @@ export default function Feed() {
 
   const feedRef = useRef<HTMLDivElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const prevOnboardingRef = useRef(hasCompletedOnboarding);
   
   // Pull to refresh state
   const [ptrStartY, setPtrStartY] = useState(0);
@@ -121,6 +122,18 @@ export default function Feed() {
       loadArticles(1, category, source, sort, true);
     }
   }, [category, source, sort, loadArticles, guestId, articles.length]);
+
+  // Explicit reload when onboarding completes (false → true transition)
+  // This guarantees a fresh personalized fetch instead of relying on the
+  // indirect articles.length === 0 trigger which can be swallowed by React batching.
+  useEffect(() => {
+    if (!prevOnboardingRef.current && hasCompletedOnboarding && guestId) {
+      // User just completed onboarding — force a fresh For You load
+      feedRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+      loadArticles(1, 'all', 'all', 'foryou', true);
+    }
+    prevOnboardingRef.current = hasCompletedOnboarding;
+  }, [hasCompletedOnboarding, guestId, loadArticles]);
 
   // Create a memoized filtered list to ensure scroll triggers fire correctly 
   // even if local tag blocking reduces the visible list length.
