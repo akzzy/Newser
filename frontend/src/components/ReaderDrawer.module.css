@@ -124,10 +124,11 @@
 /* ---- Content ---- */
 .drawerContent {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: hidden; /* Prevent Chrome from stealing touch events; JS handles scrolling */
   scrollbar-width: none; /* Firefox: hide scrollbar */
   padding: 0 var(--space-md) var(--space-2xl);
   overscroll-behavior-y: none; /* Completely kills Android Chrome's local container stretch/glow */
+  touch-action: none; /* Must be on the scrollable element itself, not just the parent */
 }
 
 /* Hide Webkit Scrollbar completely */
@@ -351,6 +352,7 @@
   /* Just give the whole drawer a nice comfortable breathing room from the pane edges */
   .drawerContent {
     padding: 0 40px var(--space-2xl);
+    overflow-y: auto; /* Restore native scrolling on desktop */
   }
 }
 
