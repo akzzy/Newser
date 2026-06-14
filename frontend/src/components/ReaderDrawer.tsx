@@ -164,6 +164,8 @@ export default function ReaderDrawer() {
   const wheelLockRef = useRef(false);
 
   // Desktop smooth article transition on scroll
+  // Re-attach when the active article changes because key={id} remounts the DOM subtree
+  const activeArticleId = activeArticle?.id;
   useEffect(() => {
     const container = contentScrollRef.current;
     if (!container) return;
@@ -178,8 +180,7 @@ export default function ReaderDrawer() {
       }
 
       const isAtTop = container.scrollTop <= 0;
-      // If clientHeight is larger than scrollHeight, it's a short article and isAtBottom is true
-      const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 1;
+      const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 2;
 
       if (e.deltaY < 0 && isAtTop) {
         e.preventDefault();
@@ -187,7 +188,7 @@ export default function ReaderDrawer() {
         if (feed && feed.scrollTop > 0) {
           wheelLockRef.current = true;
           feed.scrollBy({ top: -feed.clientHeight, behavior: 'smooth' });
-          setTimeout(() => { wheelLockRef.current = false; }, 500);
+          setTimeout(() => { wheelLockRef.current = false; }, 600);
         }
       } else if (e.deltaY > 0 && isAtBottom) {
         e.preventDefault();
@@ -195,14 +196,14 @@ export default function ReaderDrawer() {
         if (feed && feed.scrollTop < feed.scrollHeight - feed.clientHeight - 1) {
           wheelLockRef.current = true;
           feed.scrollBy({ top: feed.clientHeight, behavior: 'smooth' });
-          setTimeout(() => { wheelLockRef.current = false; }, 500);
+          setTimeout(() => { wheelLockRef.current = false; }, 600);
         }
       }
     };
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
-  }, []);
+  }, [activeArticleId]);
 
   // Close on escape key
   useEffect(() => {

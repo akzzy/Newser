@@ -296,6 +296,11 @@
 @media (min-width: 1024px) {
   .desktopAnimateGroup {
     animation: slideUpFade 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0; /* Allow flex child to shrink below content size for proper scrolling */
+    overflow: hidden;
   }
   
   .overlay {
@@ -342,9 +347,6 @@
     transition: none;
   }
 
-  .desktopAnimateGroup {
-    animation: slideUpFade 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  }
 
   /* Just give the whole drawer a nice comfortable breathing room from the pane edges */
   .drawerContent {
