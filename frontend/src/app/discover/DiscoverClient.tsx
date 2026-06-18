@@ -131,7 +131,7 @@ export default function DiscoverClient({ categories, sources }: { categories: st
           onClick={handleLogoClick}
           style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
         >
-          NEWSER
+          1MINUTE
         </button>
       </header>
 

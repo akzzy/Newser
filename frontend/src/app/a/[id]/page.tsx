@@ -12,11 +12,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const article = await fetchArticleById(resolvedParams.id);
   
   if (!article) {
-    return { title: 'Article Not Found | Newser' };
+    return { title: 'Article Not Found | 1Minute' };
   }
 
   return {
-    title: `${article.title_hook} | Newser`,
+    title: `${article.title_hook} | 1Minute`,
     description: article.deep_dive_content.substring(0, 160) + '...',
     openGraph: {
       title: article.title_hook,

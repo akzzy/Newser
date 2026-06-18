@@ -294,7 +294,7 @@ export default function Feed() {
       {/* Fixed header */}
       <header className={styles.header}>
         <button className={styles.logo} onClick={handleLogoClick} aria-label="Refresh feed">
-          NEWSER
+          1MINUTE
         </button>
       </header>
 

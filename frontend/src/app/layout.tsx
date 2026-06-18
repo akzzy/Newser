@@ -3,11 +3,11 @@ import OnboardingModal from '@/components/OnboardingModal';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Newser — AI-Powered News, Zero Noise',
+  title: '1Minute — AI-Powered News, Zero Noise',
   description: 'Get the signal, skip the noise. AI-rewritten news articles delivered in a premium, swipeable feed.',
   keywords: ['news', 'ai', 'tech news', 'ai rewrite', 'news aggregator'],
   openGraph: {
-    title: 'Newser — AI-Powered News, Zero Noise',
+    title: '1Minute — AI-Powered News, Zero Noise',
     description: 'Get the signal, skip the noise. AI-rewritten news articles.',
     type: 'website'
   }

@@ -62,7 +62,7 @@ export default function FloatingActionBar() {
       if (navigator.share) {
         await navigator.share({
           title: currentArticle.title_hook,
-          text: 'Check out this news on Newser!',
+          text: 'Check out this news on 1Minute!',
           url: shareUrl,
         });
       } else if (navigator.clipboard && navigator.clipboard.writeText) {
