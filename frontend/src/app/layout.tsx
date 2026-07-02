@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { Analytics } from '@vercel/analytics/react';
 import OnboardingModal from '@/components/OnboardingModal';
 import './globals.css';
 
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body>
         {children}
         <OnboardingModal />
+        <Analytics />
       </body>
     </html>
   );
