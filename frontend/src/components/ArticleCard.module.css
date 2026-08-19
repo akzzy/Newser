@@ -396,6 +396,25 @@
 }
 
 /* ================================================
+   Laptop screens (1024px–1440px): Reduce hero image
+   to prevent title clipping on shorter screens
+   ================================================ */
+@media (min-width: 1024px) and (max-width: 1440px) {
+  .heroImage, .heroImageFallback {
+    height: calc(58% - 76px - env(safe-area-inset-top, 0px));
+  }
+
+  .contentArea {
+    top: 58%;
+    height: 42%;
+  }
+
+  .titleHook {
+    font-size: clamp(20px, 4.5vw, 28px);
+  }
+}
+
+/* ================================================
    Ultra-wide & 1440p monitors (Scale up typography)
    ================================================ */
 @media (min-width: 1921px) {
